@@ -1,0 +1,36 @@
+{
+    "name": "mxncommerce/channel-connector",
+    "description": "Laravel channel-connector package for Reebonz",
+    "type": "library",
+    "license": "Proprietary",
+    "authors": [
+        {
+            "name": "Softrain",
+            "email": "sm.hong@mxncommerce.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "version": "0.1.0",
+    "require": {
+        "laravel/framework": "^9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mxncommerce\\ChannelConnector\\Tests\\": "tests/",
+            "Mxncommerce\\ChannelConnector\\": "src/"
+        },
+        "files": [
+            "src/Helpers/Helpers.php"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Mxncommerce\\ChannelConnector\\ChannelConnectorServiceProvider"
+            ],
+            "aliases": {
+                "ChannelConnector": "Mxncommerce\\ChannelConnector\\ChannelConnectorServiceProvider"
+            }
+        }
+    }
+}
