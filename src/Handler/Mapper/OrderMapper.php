@@ -2,73 +2,91 @@
 
 namespace Mxncommerce\ChannelConnector\Handler\Mapper;
 
+use App\Exceptions\Api\NotDealableOrderException;
 use App\Helpers\ChannelConnectorFacade;
-use App\Models\Features\Order;
+use App\Models\Features\ConfigurationValue;
+use App\Models\Features\Product;
+use App\Models\Features\Variant;
+use App\Models\Override;
+use Illuminate\Support\Carbon;
+use Throwable;
 
 class OrderMapper
 {
     public function getModelPayload(array $payload): array
     {
-        $currencyFromChannel = $payload['currency'] ?? 'USD';
-//        $currency = collect(Currency::query()->get())->where('code', $currencyFromChannel)->first();
-        $currency = ChannelConnectorFacade::getCurrencyByCode($currencyFromChannel);
+        $country_code = ChannelConnectorFacade::getCountryById(
+            (int)ConfigurationValue::getValue('channel_default_country')
+        )->code;
 
-        $countryFromChannel = $payload['shipping_address']['country_code'] ?? 'US';
-//        $shippingCountry = collect(Country::query()->get())->where('code' , $countryFromChannel)->first();
-        $shippingCountry = ChannelConnectorFacade::getCountryByCode($countryFromChannel);
-
-        $billingFromChannel = $payload['billing_address']['country_code'] ?? 'US';
-//        $billingCountry = collect(Country::query()->get())->where('code' , $billingFromChannel)->first();
-        $billingCountry = ChannelConnectorFacade::getCountryByCode($billingFromChannel);
-
-        $shippingTotalAmount = collect($payload['shipping_lines'])->sum('price');
-
-        if (!empty($payload['customer']['first_name']) || !empty($payload['customer']['last_name'])) {
-            $customerName = $payload['customer']['first_name'] ?? null ;
-            if(!empty($payload['customer']['last_name'])) {
-                $customerName .= ' ' . $payload['customer']['last_name'];
-            }
-        } else {
-            $customerName = $payload['customer']['default_address']['name'] ?? null ;
-        }
+        $currency_code = ChannelConnectorFacade::getCurrencyById(
+            (int)ConfigurationValue::getValue('channel_default_currency')
+        )->code;
 
         return [
-            Order::CHANNEL_ORDER_NUMBER => (string)$payload['id'],
-            Order::CURRENCY_ID => !empty($currency['id']) ? $currency['id'] : 1 ,
+            'channel_order_number' => (string)$payload['number'],
+            'currency_code' => $currency_code,
+            'total_order_amount' => (float)$payload['product_supply_price'],
+            'customer_first_name' => $payload['order_user'],
+            'customer_last_name' => $payload['order_user'],
+            'customer_email' => ConfigurationValue::getValue('channel_default_customer_email'),
+            'customer_phone' => $payload['phone'] ?? null,
+            's_first_name' => $payload['recipient'] ?? null ,
+            's_last_name' => $payload['recipient'] ?? null ,
+            's_phone' => $payload['phone'] ?? null ,
+            's_address_1' => $payload['address'] ?? null,
+            's_city' => ' . ',
+            's_country_code' => $country_code,
+            's_additional_note' => $payload['extra_request'] ?? null,
+            's_customs_clearance_code' => $payload['clearance_number'] ?? null,
+            'b_first_name' => $payload['order_user'] ,
+            'b_last_name' => $payload['order_user'] ,
+            'b_address_1' => $payload['address'] ?? null,
+            'b_city' => ' . ',
+            'b_country_code' => $country_code,
+            'meta_data' => null,
+        ];
+    }
 
-            Order::SUB_TOTAL_ORDER_AMOUNT => (float)$payload['current_subtotal_price'],
-            Order::TOTAL_DISCOUNT_AMOUNT => (float)$payload['current_total_discounts'],
-            Order::TOTAL_TAX_AMOUNT => (float)$payload['current_total_tax'],
-            Order::TOTAL_SHIPPING_AMOUNT => (float)$shippingTotalAmount ?? null,
-            Order::TOTAL_ORDER_AMOUNT => (float)$payload['current_total_price'],
-            Order::CUSTOMER_NAME => $customerName,
-            Order::CUSTOMER_EMAIL => $payload['customer']['email'] ?? null,
-            Order::CUSTOMER_PHONE => $payload['customer']['phone']
-                ?? $payload['customer']['default_address']['phone'] ?? null,
-            Order::S_NAME => $payload['shipping_address']['name'] ?? null ,
-            Order::S_PHONE => $payload['shipping_address']['phone'] ?? null ,
+    /**
+     * @throws Throwable
+     */
+    public function getModelItemPayload(array $payload): array|null
+    {
+        $override = Override::whereIdFromRemote($payload['product_id'])
+            ->where('overridable_type', Product::class)->first();
+        throw_if(
+            !$override->overridable instanceof Product,
+            NotDealableOrderException::class
+        );
 
-            Order::S_MOBILE => $payload['shipping_address']['phone'] ?? null ,
+        $overrideModelItem = Override::whereIdFromRemote($payload['stock_id'])
+            ->where('overridable_type', Variant::class)
+            ->first();
+        throw_if(
+            !$overrideModelItem->overridable instanceof Variant,
+            NotDealableOrderException::class
+        );
 
-            Order::S_COMPANY => $payload['shipping_address']['company'] ?? null ,
-            Order::S_ADDRESS_1 => $payload['shipping_address']['address1'] ?? null,
-            Order::S_ADDRESS_2 => $payload['shipping_address']['address2'] ?? null,
-            Order::S_CITY => $payload['shipping_address']['city'] ?? null,
-            Order::S_PROVINCE => $payload['shipping_address']['province'] ?? null,
-            Order::S_POSTAL_CODE => $payload['shipping_address']['zip'] ?? null,
-            Order::S_COUNTRY_ID => !empty($shippingCountry['id']) ? $shippingCountry['id'] : 1 ,
-            Order::S_ADDITIONAL_NOTE => $payload['note'] ?? null,
-            Order::S_CUSTOMS_CLEARANCE_CODE => null,
-            Order::B_NAME => $payload['billing_address']['name'] ?? null ,
-            Order::B_PHONE => $payload['billing_address']['phone'] ?? null ,
-            Order::B_COMPANY => $payload['billing_address']['company'] ?? null ,
-            Order::B_ADDRESS_1 => $payload['billing_address']['address1'] ?? null,
-            Order::B_ADDRESS_2 => $payload['billing_address']['address2'] ?? null,
-            Order::B_CITY => $payload['billing_address']['city'] ?? null,
-            Order::B_PROVINCE => $payload['billing_address']['province'] ?? null,
-            Order::B_POSTAL_CODE => $payload['billing_address']['zip'] ?? null,
-            Order::B_COUNTRY_ID => !empty($billingCountry['id']) ? $billingCountry['id'] : 1 ,
-            Order::META_DATA => null,
+        $currency_code = ChannelConnectorFacade::getCurrencyById(
+            (int)ConfigurationValue::getValue('channel_default_currency')
+        )->code;
+
+        return [
+            'variant_id' => $overrideModelItem->overridable->id,
+            'product_id' => $override->overridable->id,
+            'channel_order_number' => (string)$payload['number'],
+            'quantity' => $payload['quantity'],
+            'c_item_id' => $payload['ordered_item_id'],
+            'c_item_sku' => $payload['marketplace_product_code'],
+            'c_item_title' => $payload['product_name'],
+            'c_item_options' => json_encode($payload['product_option_name']),
+            'c_item_currency_code' => $currency_code,
+            'c_item_sales_price' => $payload['product_selling_price'],
+            'c_item_supply_currency_code' => $currency_code,
+            'c_item_recorded_at' => Carbon::now()->toDateTimeString(),
+            'cc_item_customs_currency_code' => $currency_code,
+	        'cc_item_customs_value' => $payload['product_supply_price'],
         ];
     }
 }

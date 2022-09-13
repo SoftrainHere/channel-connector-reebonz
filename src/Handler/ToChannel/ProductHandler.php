@@ -3,11 +3,15 @@
 namespace Mxncommerce\ChannelConnector\Handler\ToChannel;
 
 use App\Exceptions\Api\ProductWithoutCategoryException;
+use App\Exceptions\Api\ProductWithoutChannelBrandException;
 use App\Exceptions\Api\SaveToCentralException;
 use App\Helpers\ChannelConnectorFacade;
 use App\Libraries\Dynamo\SendExceptionToCentralLog;
 use App\Models\Features\Brand;
+use App\Models\Features\InventorySet;
 use App\Models\Features\Product;
+use App\Models\Features\Variant;
+use App\Models\Features\VendorBrand;
 use App\Models\ResyncWaitingProduct;
 use App\Traits\WaitUntil;
 use Exception;
@@ -38,20 +42,19 @@ class ProductHandler extends ApiBase
         $this->waitUntil('product creating...');
 
         if (
-            !($product->brand instanceof Brand) ||
+            !($product->vendorBrand instanceof VendorBrand) ||
             !count($product->variants) ||
             !count($product->descriptionSets)
         ) {
-            $this->waitUntil(Product::REL_BRAND, $this->sleepCount);
+            $this->waitUntil(Product::REL_VENDOR_BRAND, $this->sleepCount);
             return false;
         }
 
         try {
-            $res = $this->buildCreatePayload($product)
-                ->requestMutation(config('channel_connector_for_remote.api_create_product'));
+            $apiEndpoint = self::getFullChannelApiEndpoint('post.products');
+            $response = $this->buildCreatePayload($product)->requestMutation($apiEndpoint);
 
-            $response = json_decode($res->getData());
-            if ($response->result != '01') {
+            if ($response['result'] != 'success') {
                 app(SendExceptionToCentralLog::class)(
                     ['Reebonz product-created error', 'got wrong response from reebonz'],
                     Response::HTTP_FORBIDDEN
@@ -60,17 +63,41 @@ class ProductHandler extends ApiBase
 
             $payloadFromRemote = [
                 'product' => [
-                    'id' => $response->product_id,
-                    'supply_currency_code' => $this->payload['input']['currency_unit'],
-                    'final_supply_price' => $product->representative_supply_price
+                    'id' => $response['product_id']
                 ]
             ];
-
             $this->setOverrideDataFromRemote($product, $payloadFromRemote);
+
+            if (count($response['stocks'])) {
+                foreach ($response['stocks'] as $stock) {
+                    $variant = Variant::find($stock['item_no']);
+                    if (!$variant instanceof Variant) {
+                        continue;
+                    }
+
+                    if (!$variant->inventorySet instanceof InventorySet) {
+                        continue;
+                    }
+
+                    $this->setOverrideDataFromRemote($variant, [
+                        'variant' => [
+                            'id' => $stock['id']
+                        ]
+                    ]);
+                }
+            }
+
         } catch (ProductWithoutCategoryException $e) {
             $resyncWaitingProduct = new ResyncWaitingProduct();
             $resyncWaitingProduct->product_id = $product->id;
             $resyncWaitingProduct->save();
+        } catch (ProductWithoutChannelBrandException $e) {
+            app(SendExceptionToCentralLog::class)(
+                [trans('errors.product_without_channel_brand', [
+                    'product_id' => $product->id
+                ])],
+                Response::HTTP_FORBIDDEN,
+            );
         } catch (Exception $e) {
             app(SendExceptionToCentralLog::class)(
                 ['Reebonz product sync error', $e->getMessage()],
@@ -89,20 +116,24 @@ class ProductHandler extends ApiBase
      */
     public function updated(Product $product): bool
     {
-        $res = $this->buildCreatePayload($product)
-            ->requestMutation(config('channel_connector_for_remote.api_create_product'));
         try {
-            $response = json_decode($res->getData());
-            if ($response->result != '01') {
+            $apiEndpoint = self::getFullChannelApiEndpoint(
+                'put.products',
+                [ 'product_id' => $product->override->id_from_remote ]
+            );
+            $response = $this->buildCreatePayload($product)->requestMutation($apiEndpoint, 'put');
+
+            if ($response['result'] != 'success') {
                 app(SendExceptionToCentralLog::class)(
-                    ['Reebonz product-updated error', 'got wrong response from reebonz'],
+                    ['Reebonz product-created error', 'got wrong response from reebonz'],
                     Response::HTTP_FORBIDDEN
                 );
             }
-        } catch (Exception $exception) {
+
+        } catch (Exception $e) {
             app(SendExceptionToCentralLog::class)(
-                ['Reebonz product sync error', $exception->getMessage()],
-                $exception->getCode()
+                ['Reebonz product sync error', $e->getMessage()],
+                $e->getCode()
             );
         }
         return true;

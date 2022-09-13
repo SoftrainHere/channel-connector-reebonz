@@ -2,22 +2,32 @@
 
 namespace Mxncommerce\ChannelConnector\Traits;
 
-use App\Helpers\ChannelConnectorFacade;
+use App\Exceptions\Api\NotDistributedProductException;
 use App\Models\Features\InventorySet;
+use App\Models\Override;
 
 trait InventorySetTrait
 {
     /**
      * @param InventorySet $inventorySet
      * @return $this
+     * @throws NotDistributedProductException
      */
     public function buildCreatePayload(InventorySet $inventorySet): static
     {
-        $this->payload = [];
-        $this->payload['input']['vendor_id'] = ChannelConnectorFacade::configuration()->meta->vendor_id;
-        $this->payload['input']['bar_code'] = $inventorySet->variant->id;
-        $this->payload['input']['order_lmt_cnt'] = $inventorySet->available_stock_qty;
-        $this->payload['input'] = ['list' => [$this->payload['input']]];
+        if (
+            !$inventorySet->variant->override instanceof Override
+            || empty($inventorySet->variant->override->id_from_remote)
+        ) {
+            throw new NotDistributedProductException();
+        }
+
+        $this->payload = [
+            'input' => [
+                "stock_id" => $inventorySet->variant->override->id_from_remote,
+                "stock_count" => $inventorySet->available_stock_qty
+            ]
+        ];
         return $this;
     }
 }

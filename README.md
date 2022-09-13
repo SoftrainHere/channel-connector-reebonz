@@ -1,7 +1,7 @@
-## Laravel package for FAVININT
+## Laravel package for Reebonz
 
 ### Requirements
-- Laravel 9.X
+- Laravel 9.X.1
 - Nginx or Apache
 - Php-fpm(above PHP 8.1.X)
 - Mysql or Mariadb(Supporting innodb and virtual column)

@@ -2,7 +2,9 @@
 
 namespace Mxncommerce\ChannelConnector;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
+use Mxncommerce\ChannelConnector\Console\Commands\GetOrdersFromChannel;
 use Mxncommerce\ChannelConnector\Console\Commands\SetupChannelResources;
 use Mxncommerce\ChannelConnector\Helpers\ChannelConnectorHelper;
 
@@ -24,6 +26,15 @@ class ChannelConnectorServiceProvider extends ServiceProvider
             __DIR__ . '/../resources/lang' => resource_path('lang'),
             __DIR__ . '/../config/channel_connector_for_remote.php' => config_path('channel_connector_for_remote.php'),
         ]);
+
+        $this->app->booted(function () {
+            $schedule = app(Schedule::class);
+            $schedule->command('command:get-orders')
+                ->withoutOverlapping()
+                ->runInBackground()
+                ->everyFifteenMinutes()
+            ;
+        });
     }
 
     /**
@@ -44,7 +55,10 @@ class ChannelConnectorServiceProvider extends ServiceProvider
     protected function registerCommands(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([SetupChannelResources::class]);
+            $this->commands([
+                SetupChannelResources::class,
+                GetOrdersFromChannel::class
+            ]);
         }
         $this->app->singleton(ChannelConnectorHelper::class);
     }

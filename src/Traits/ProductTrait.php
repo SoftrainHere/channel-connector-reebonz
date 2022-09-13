@@ -2,15 +2,16 @@
 
 namespace Mxncommerce\ChannelConnector\Traits;
 
+use App\Enums\ProductSalesStatusType;
+use App\Enums\ProductStatusType;
 use App\Exceptions\Api\ProductWithoutCategoryException;
-use App\Exceptions\Api\WrongPayloadException;
-use App\Helpers\ChannelConnectorFacade;
+use App\Exceptions\Api\ProductWithoutChannelBrandException;
+use App\Models\ChannelCategory;
+use App\Models\Features\Category;
 use App\Models\Features\ConfigurationValue;
+use App\Models\Features\Country;
 use App\Models\Features\Product;
-use App\Models\Override;
-use App\Models\ResyncWaitingProduct;
 use Mxncommerce\ChannelConnector\Helpers\ChannelConnectorHelper;
-use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 trait ProductTrait
@@ -22,112 +23,86 @@ trait ProductTrait
      */
     public function buildCreatePayload(Product $product): static
     {
-        $productOverride = null;
-        if ($product->override instanceof Override) {
-            if ($product->override->fields_overrided) {
-                $productOverride = json_decode($product->override->fields_overrided);
-            }
-        }
         $this->payload = [];
 
-        //$this->payload['input']['vendor_id'] = ChannelConnectorFacade::configuration()->meta->vendor_id;
-        $this->payload['input']['vendor_id'] = ConfigurationValue::getValue('meta_vendor_id');
+        $this->payload['input']['created_from'] =
+            ConfigurationValue::getValue('channel_connector_identifier_from_channel');
+        $this->payload['input']['name'] = (string)$product->descriptionSetWithLanguage?->title;
+        $this->payload['input']['code'] = (string)$product->getRepresentativeProperty('sku');
+        $this->payload['input']['marketplace_code'] = $product->id;
 
-        $this->payload['input']['prodinc'] = (string)$product->id;
-        $this->payload['input']['modelcode'] = $product->variants[0]->mpn;
+        $this->payload['input']['available'] =
+            $product->status === ProductStatusType::Active->value &&
+            $product->sales_status === ProductSalesStatusType::Enabled->value;
 
-        if ($product->descriptionSets) {
-            $overrided = ChannelConnectorFacade::getFieldsOverrided($product->descriptionSets[0]);
-            $this->payload['input']['pname'] = $overrided['title'] ?? $product->descriptionSets[0]->title;
-            $this->payload['input']['story'] =
-                $overrided['description'] ?? $product->descriptionSets[0]->description;
-        }
-
-        $this->payload['input']['shortage_yn'] = $this->convertProductStatus($product->status);
-
-        $behaviorForProductWithoutCategory =
-            ConfigurationValue::getValue('behavior_for_product_without_category');
-
-        if(!$product->representative_category) {
-            if ($behaviorForProductWithoutCategory === 'SAVE_FOR_RETRY') {
-                throw new ProductWithoutCategoryException(null);
-            } else {
-                $error_namespace = 'mxncommerce.channel-connector::channel_connector.errors.no_category_in_product';
-                $error = trans($error_namespace, [
-                    'product_id' => $product->id,
-                ]);
-                throw new WrongPayloadException($error, Response::HTTP_BAD_REQUEST);
+        if (ConfigurationValue::getValue('use_brand_mapper')) {
+            if(!count($product->vendorBrand->brand->channelBrand)) {
+                throw new ProductWithoutChannelBrandException(null);
             }
         }
 
-        if(empty($product->representative_category->channelCategories[0]->code)) {
-            $error_namespace = 'mxncommerce.channel-connector::channel_connector.errors.no_category_id_mapped_exist';
-            $error = trans($error_namespace, [
-                'category_id' => $product->categories[0]->id,
-                'product_id' => $product->id,
-            ]);
-            throw new WrongPayloadException($error, Response::HTTP_BAD_REQUEST);
+        $this->payload['input']['brand_id'] = $product->vendorBrand->brand->channelBrand[0]->id;
+//        $this->payload['input']['marketplace_price'] = (string)$product->representative_supply_price;
+        $this->payload['input']['marketplace_price'] = ceil($product->representative_supply_price);
+        $this->payload['input']['commission'] = config('channel_connector_for_remote.commission');
+        $this->payload['input']['material'] = $product->getRepresentativeProperty('materials');
+        // $this->payload['input']['color'] = '';
+        // $this->payload['input']['model_name'] = '';
+        // $this->payload['input']['season'] = '';
+        $this->payload['input']['country'] =
+            Country::find(ConfigurationValue::getValue('channel_default_country'))->alpha_2;
+        // $this->payload['input']['product_feature'] = '';
+        // $this->payload['input']['size_standard'] = '';
+        $descriptionSet = $product->descriptionSetWithLanguage;
+        $description = (string)$descriptionSet->description;
+
+        if ($descriptionSet->override) {
+            $fieldOverride = $descriptionSet->override->fields_overrided ?
+                json_decode($descriptionSet->override->fields_overrided) : null ;
+            if (isset($fieldOverride->description)) {
+                $description = $fieldOverride->description;
+            }
+        }
+        $this->payload['input']['description'] = $description;
+        // $this->payload['input']['legal_info'] = '';
+        // $this->payload['input']['product_notification'] = '';
+        // $this->payload['input']['product_tip'] = '';
+        // $this->payload['input']['size_info '] = '';
+        $channelCategoryPayload = $this->getChannelCategoryFormat($product->representativeCategory);
+        if (!$channelCategoryPayload) {
+            throw new ProductWithoutCategoryException(null);
         }
 
-        $this->payload['input']['category_id'] = $product->categories[0]->channelCategories[0]->code ?? 'NA';
+        $this->payload['input']['category_gender_id'] = $channelCategoryPayload['category_gender_id'];
+        $this->payload['input']['category_master_id'] = $channelCategoryPayload['category_master_id'];
+        $this->payload['input']['category_slave_id'] = $channelCategoryPayload['category_slave_id'];
+        $this->payload['input']['category_slave_id2'] =  $channelCategoryPayload['category_slave_id2'];
 
-        $this->payload['input']['nation'] = $product->variants[0]->countryOrigin->code;
-        $this->payload['input']['currency_unit'] = $product->variants[0]->currency->code;
+        $this->payload['input']['image_main_url'] = stripslashes($product->media[0]->src);
 
-        $this->payload['input']['supplyprice'] = (string)$product->representative_supply_price;
-
-        $this->payload['input']['saleprice'] = $product->priceSets[0]->sales_price;
-        $this->payload['input']['customerprice'] = (string)$product->priceSets[0]->msrp;
-
-        if (empty($product->media[0])) {
-            $error_namespace = 'mxncommerce.channel-connector::channel_connector.errors.no_medium_in_product';
-            $error = trans($error_namespace, [
-                'product_id' => $product->id,
-            ]);
-            throw new WrongPayloadException($error, Response::HTTP_BAD_REQUEST);
-        } else {
-            $this->payload['input']['prodimg'] = stripslashes($product->media[0]->src);
-        }
-
-        $this->payload['input']['fabric'] = $productOverride->materials ?? $product->materials;
-        $this->payload['input']['brand_nm'] = $product->brand->translations[0]->name;
-        $this->payload['input']['weight'] =
-            (string)$this->getKGWeight($product->variants[0]->weight_unit, $product->variants[0]->weight);
-        $this->payload['input']['hs_code'] = $product->variants[0]->hs_code;
-        $this->payload['input']['euyn'] = 'Y';
-
-        $this->payload['input']['sizetype'] = $product->variants[0]->dimension_unit;
-        $this->payload['input']['addimginfo'] = $product->media->map(function ($item) {
-            return [
-                'addUrl' => stripslashes($item->src),
-            ];
+        $this->payload['input']['detail_images'] = $product->media->map(function ($item) {
+            return [ 'detail_image_url' => stripslashes($item->src) ];
         });
 
-        $this->payload['input']['optioninfo'] = $product->variants->map(function ($item) {
+        $this->payload['input']['stocks'] = $product->variants->map(function ($item) {
             $options = json_decode(
                 app(ChannelConnectorHelper::class)->buildValidJson($item->options),
                 true
             );
-            $item_color = 'ONE COLOR';
-            $item_size = 'ONE SIZE';
+
+            $optionStringForChannel = '';
 
             foreach ($options as $option) {
                 if (is_array($option)) {
-                    if (strtolower($option['name']) === 'color') {
-                        $item_color = $option['value'];
-                    }
-
-                    if (strtolower($option['name']) === 'size') {
-                        $item_size = $option['value'];
-                    }
+                    $optionStringForChannel .= $option['name']  . '=' . $option['value'] .', ';
                 }
             }
 
             return [
-                'item_color' => $item_color,
-                'item_size' => $item_size,
-                'bar_code' => $item->id, // This is not actually barcode or sku It must be pk
-                'order_lmt_cnt' => (string)$item->inventorySet->available_stock_qty,
+                'option_group_name' => 'option',
+                'option_name' => $optionStringForChannel,
+                'stock_count' => $item->inventorySet->available_stock_qty,
+                'item_no' => $item->id
             ];
         });
 
@@ -150,5 +125,45 @@ trait ProductTrait
             'LB' => (float)number_format($weight * 0.453592, 3),
             default => (float)$weight
         };
+    }
+
+    /**
+     * Assuming that each cc-local category is connected with 2 channel-categories(Gender: 1, Category: 4)
+     *
+     * @param Category $localCategory
+     * @return int[]
+     */
+    protected function getChannelCategoryFormat(Category $localCategory): array|null
+    {
+        $result = [
+            'category_gender_id' => 0,
+            'category_master_id' => 0,
+            'category_slave_id' => 0,
+            'category_slave_id2' => 0,
+        ];
+
+        if (!$localCategory->channelCategories || !count($localCategory->channelCategories)) {
+            return null;
+        }
+
+        foreach ($localCategory->channelCategories as $channelCategory) {
+            if ($channelCategory->category_fid === 1) {
+                $result['category_gender_id'] = $channelCategory->code;
+            } else {
+                if ($channelCategory->is_last_category === 1) {
+                    $result['category_slave_id2'] = $channelCategory->code;
+                    $parentModel = ChannelCategory::whereCode($channelCategory->parent_code)->first();
+                    $result['category_slave_id'] = $parentModel->code;
+                    if ($parentModel->parent_code) {
+                        $grandParentModel = ChannelCategory::whereCode($parentModel->parent_code)->first();
+                        $result['category_master_id'] = $grandParentModel->code;
+                    }
+                } else {
+                    // todo
+                    // basically this is wrong, It should be last_category.
+                }
+            }
+        }
+        return $result;
     }
 }
