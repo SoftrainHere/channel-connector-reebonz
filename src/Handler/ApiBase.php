@@ -43,7 +43,7 @@ abstract class ApiBase
 
         $response = Http::acceptJson()
             ->withToken(ConfigurationValue::getValue('channel_oauth_token'))
-            ->{$mutationType}($endpoint, $this->payload['input']);
+            ->{$mutationType}($endpoint, $this->payload['input'] ?? []);
 
         if ($response->status() === Response::HTTP_UNAUTHORIZED) {
             if(self::renewChannelToken()) {

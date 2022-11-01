@@ -4,13 +4,10 @@ namespace Mxncommerce\ChannelConnector\Handler\ToChannel;
 
 use App\Models\Features\Product;
 use Mxncommerce\ChannelConnector\Handler\ApiBase;
-use Mxncommerce\ChannelConnector\Traits\ProductTrait;
 use Throwable;
 
 class DescriptionSetHandler extends ApiBase
 {
-    use ProductTrait;
-
     /**
      * @param Product $product
      * @return bool

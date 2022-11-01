@@ -8,13 +8,13 @@ use App\Libraries\Dynamo\SendExceptionToCentralLog;
 use App\Models\Features\InventorySet;
 use Exception;
 use Mxncommerce\ChannelConnector\Handler\ApiBase;
-use Mxncommerce\ChannelConnector\Traits\InventorySetTrait;
+use Mxncommerce\ChannelConnector\Traits\InventorySetHandlerTrait;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class InventorySetHandler extends ApiBase
 {
-    use InventorySetTrait;
+    use InventorySetHandlerTrait;
 
     /**
      * @param InventorySet $inventorySet

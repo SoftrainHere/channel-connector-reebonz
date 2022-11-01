@@ -5,17 +5,18 @@ namespace Mxncommerce\ChannelConnector\Handler\FromChannel;
 use App\Exceptions\Api\NotDealableOrderException;
 use App\GraphQL\Validators\Features\Order\CreateOrderInputValidator;
 use App\GraphQL\Mutations\Features\Order\OrderMutator;
+use App\Helpers\ChannelConnectorFacade;
+use App\Models\Balance;
+use App\Models\Features\ConfigurationValue;
 use App\Models\Features\Order;
+use App\Models\Features\Variant;
 use App\Models\Override;
 use Exception;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Mxncommerce\ChannelConnector\Handler\Mapper\OrderMapper;
 use Throwable;
 
-/**
- * This method is for retrieving order data
- * through channel-api directly into CC
- */
 class OrderCreate
 {
     /**
@@ -35,68 +36,90 @@ class OrderCreate
             $orderPayload['input'] = app(OrderMapper::class)->getModelPayload($payload);
             $orderPayload['input']['orderItems'][] = app(OrderMapper::class)->getModelItemPayload($payload);
 
-            if (count($orderPayload['input']['orderItems']) > 0) {
-                Validator::make(
-                    $orderPayload['input'],
-                    app(CreateOrderInputValidator::class)->rules()
-                )->validate();
-                $order = app(OrderMutator::class)->create(null, $orderPayload);
-                if (!$order instanceof Order) {
-                    // todo: order creation failed, what to do?
-                    // throw something
+            if (!count($orderPayload['input']['orderItems'])) {
+                return false;
+            }
+
+            Validator::make(
+                $orderPayload['input'],
+                app(CreateOrderInputValidator::class)->rules()
+            )->validate();
+
+            if (ConfigurationValue::getValue('balance_enable')) {
+
+                $channelBalance = Balance::whereCurrencyId(
+                    ConfigurationValue::getValue('channel_default_currency')
+                )->first();
+
+                if(!$channelBalance instanceof Balance) {
                     return false;
                 }
-                return true;
+
+                $totalChannelOrderAmount = (int)$payload['product_supply_price'] * (int)$payload['quantity'];
+
+                $variant = Override::whereIdFromRemote($payload['stock_id'])
+                    ->where('overridable_type', Variant::class)
+                    ->firstOrFail()->overridable;
+
+                if ($variant->currency_id !== $channelBalance->currency_id) {
+                    return false;
+                }
+
+                $variantUnitSupplyPrice = $variant->finalSupplyPrice;
+
+                if (
+                    empty($payload['product_supply_price']) ||
+                    ((float)$variant->finalSupplyPrice !== (float)$payload['product_supply_price'])
+                ) {
+                    if (ConfigurationValue::getValue('balance_order_cancel_when_supplied_price_not_match')) {
+                        return false;
+                    }
+
+                    if (ConfigurationValue::getValue('balance_type_of_debit') === 'VALUE_OF_CURRENT_SYSTEM') {
+                        $lastSuppliedSent = $variant->supplyPriceSentHistories->last();
+                        $variantUnitSupplyPrice = $lastSuppliedSent->final_supply_price ?? $variant->finalSupplyPrice;
+                        $totalChannelOrderAmount = (float)$variantUnitSupplyPrice * (int)$payload['quantity'];
+                    }
+                }
+
+                if (!$totalChannelOrderAmount || $channelBalance->balance < $totalChannelOrderAmount) {
+                    return false;
+                }
+
+                $orderPayload['input']['total_order_amount'] = $totalChannelOrderAmount;
+                $orderPayload['input']['orderItems'][0]['c_item_supply_price'] = $variantUnitSupplyPrice;
+
+                DB::beginTransaction();
+
+                $order = app(OrderMutator::class)->create(null, $orderPayload);
+                if (!$order instanceof Order) {
+                    DB::rollBack();
+                    return false;
+                }
+
+                /*
+                 | ---------------------------------------------
+                 | Deduct balance
+                 | ---------------------------------------------
+                */
+                ChannelConnectorFacade::deductBalanceForOrder(
+                    $totalChannelOrderAmount,
+                    $channelBalance->id,
+                    $order->orderItems[0]->id
+                );
+                DB::commit();
+            } else  {
+                $order = app(OrderMutator::class)->create(null, $orderPayload);
+                if (!$order instanceof Order) {
+                    return false;
+                }
             }
+            return true;
         } catch (NotDealableOrderException $e) {
             // todo leave some message on Central log
             return false;
         } catch (Exception $e) {
             return false;
         }
-
-        return false;
     }
-
-//    private function checkVariantHandled(array $item, Configuration $configuration): Variant|null
-//    {
-//        $variant = Override::whereOverridableType(Variant::class)
-//            ->whereIdFromRemote(
-//                app(ChannelConnectorHelper::class)
-//                    ->getShopifyGlobalIdHeader('ProductVariant', (string)$item['variant_id'])
-//            )->first()->overridable;
-//
-//        if (!$variant instanceof Variant) {
-//            ChannelConnectorFacade::moveExceptionToCentral(
-//                [trans('errors.order_cancelled_for.no_active_variant', [
-//                    'variant_id' => $variant->{Variant::ID}
-//                ])],
-//                Response::HTTP_NOT_FOUND,
-//            );
-//            return null;
-//        }
-//
-//        if (!empty($variant->product->channelDeal->id)) {
-//            if ($variant->product->channelDeal->status === ChannelDeal::STATUS_INACTIVE) {
-//                return null;
-//            }
-//        }
-//
-//        if (empty($variant->product->brand->channelDeal->id)) {
-//            if ($configuration->bind_new_product_to_channel_deals) {
-//                $channelDeal = new ChannelDeal();
-//                $channelDeal->channelDealable()->associate($variant->product->brand);
-//                $channelDeal->channel_dealable_id = $variant->product->brand->id;
-//                $channelDeal->save();
-//            } else {
-//                return null;
-//            }
-//        } else {
-//            if ($variant->product->brand->channelDeal->status === ChannelDeal::STATUS_INACTIVE) {
-//                return null;
-//            }
-//        }
-//
-//        return $variant;
-//    }
 }

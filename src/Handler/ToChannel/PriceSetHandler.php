@@ -2,17 +2,13 @@
 
 namespace Mxncommerce\ChannelConnector\Handler\ToChannel;
 
-use App\Exceptions\Api\WrongPayloadException;
-use App\Helpers\ChannelConnectorFacade;
 use App\Models\Features\PriceSet;
-use Exception;
 use Mxncommerce\ChannelConnector\Handler\ApiBase;
-use Mxncommerce\ChannelConnector\Traits\PriceSetTrait;
-use Symfony\Component\HttpFoundation\Response;
+use Mxncommerce\ChannelConnector\Traits\PriceSetHandlerTrait;
 
 class PriceSetHandler extends ApiBase
 {
-    use PriceSetTrait;
+    use PriceSetHandlerTrait;
 
     /**
      * @param PriceSet $priceSet

@@ -9,7 +9,7 @@ use App\Models\Override;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
-trait PriceSetTrait
+trait PriceSetHandlerTrait
 {
     /**
      * @param PriceSet $priceSet

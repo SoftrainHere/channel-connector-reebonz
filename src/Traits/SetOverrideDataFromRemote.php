@@ -21,7 +21,7 @@ trait SetOverrideDataFromRemote
         } else {
             $override = new Override();
             $override->overridable()->associate($model);
-            $override->id_from_remote = $metaBody['id'];
+            $override->id_from_remote = empty($metaBody['id']) ? null : $metaBody['id'] ;
             $override->meta_id_from_remote = json_encode($metaBody) ?? null;
             $override->save();
         }

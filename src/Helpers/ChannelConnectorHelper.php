@@ -25,6 +25,24 @@ class ChannelConnectorHelper
     public function getChannelLogistics(string $trackingCompany): array|null
     {
         $lists = config('channel_connector_for_remote.logistics');
-        return collect($lists)->where('name', $trackingCompany)->first();
+        return collect($lists)->first(function ($value, $key) use ($trackingCompany) {
+            return strtolower($value['name']) == strtolower($trackingCompany);
+        });
+    }
+
+    public function getChannelOrderStatus(string $orderStatus): array|null
+    {
+        $lists = config('channel_connector_for_remote.order_status');
+        return collect($lists)->first(function ($value) use ($orderStatus) {
+            return strtolower($value['name']) == strtolower($orderStatus);
+        });
+    }
+
+    public function getChannelDeliveryStatus(string $deliveryStatus): array|null
+    {
+        $lists = config('channel_connector_for_remote.delivery_status');
+        return collect($lists)->first(function ($value) use ($deliveryStatus) {
+            return strtolower($value['name']) == strtolower($deliveryStatus);
+        });
     }
 }

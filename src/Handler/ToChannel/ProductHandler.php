@@ -7,24 +7,25 @@ use App\Exceptions\Api\ProductWithoutChannelBrandException;
 use App\Exceptions\Api\SaveToCentralException;
 use App\Helpers\ChannelConnectorFacade;
 use App\Libraries\Dynamo\SendExceptionToCentralLog;
-use App\Models\Features\Brand;
 use App\Models\Features\InventorySet;
 use App\Models\Features\Product;
 use App\Models\Features\Variant;
 use App\Models\Features\VendorBrand;
 use App\Models\ResyncWaitingProduct;
+use App\Traits\SupplyPriceSentHistoryTrait;
 use App\Traits\WaitUntil;
 use Exception;
 use Mxncommerce\ChannelConnector\Handler\ApiBase;
-use Mxncommerce\ChannelConnector\Traits\ProductTrait;
+use Mxncommerce\ChannelConnector\Traits\ProductHandlerTrait;
 use Mxncommerce\ChannelConnector\Traits\SetOverrideDataFromRemote;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class ProductHandler extends ApiBase
 {
-    use ProductTrait;
+    use ProductHandlerTrait;
     use SetOverrideDataFromRemote;
+    use SupplyPriceSentHistoryTrait;
     use WaitUntil;
 
     protected int $sleepCount = 0;
@@ -86,6 +87,13 @@ class ProductHandler extends ApiBase
                     ]);
                 }
             }
+
+            /*
+             | ------------------------------------------------------------
+             | Upsert last History of supplied price of product to channel
+             | ------------------------------------------------------------
+             */
+            ChannelConnectorFacade::upsertSupplyPriceSentHistory($product);
 
         } catch (ProductWithoutCategoryException $e) {
             $resyncWaitingProduct = new ResyncWaitingProduct();

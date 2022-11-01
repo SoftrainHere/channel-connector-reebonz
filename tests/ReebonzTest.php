@@ -45,4 +45,13 @@ class ReebonzTest extends TestCase
 //        $code = app(ChannelConnectorFacade::class)::checkProductFromEurope('LU');
         $this->assertTrue(true);
     }
+
+    public function test_get_logistics_succeeded_test()
+    {
+//        $str = 'FeDex';
+//        $res = app(\Mxncommerce\ChannelConnector\Helpers\ChannelConnectorHelper::class)
+//            ->getChannelLogistics($str);
+//        $this->assertEquals(strtolower($str), strtolower($res['name']));
+        $this->assertTrue(true);
+    }
 }

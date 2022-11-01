@@ -6,7 +6,7 @@ use App\Exceptions\Api\NotDistributedProductException;
 use App\Models\Features\InventorySet;
 use App\Models\Override;
 
-trait InventorySetTrait
+trait InventorySetHandlerTrait
 {
     /**
      * @param InventorySet $inventorySet

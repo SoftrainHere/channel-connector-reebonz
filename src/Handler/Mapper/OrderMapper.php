@@ -23,10 +23,18 @@ class OrderMapper
             (int)ConfigurationValue::getValue('channel_default_currency')
         )->code;
 
+        $total_discount_amount = 0;
+        if ($payload['product_supply_price'] > $payload['product_selling_price']) {
+            $total_discount_amount =
+                ($payload['product_supply_price'] - $payload['product_selling_price']) *
+                (int)$payload['quantity'];
+        }
+
         return [
             'channel_order_number' => (string)$payload['number'],
             'currency_code' => $currency_code,
-            'total_order_amount' => (float)$payload['product_supply_price'],
+            'total_order_amount' => (float)$payload['product_supply_price'] * (int)$payload['quantity'],
+            'total_discount_amount' => $total_discount_amount,
             'customer_first_name' => $payload['order_user'],
             'customer_last_name' => $payload['order_user'],
             'customer_email' => ConfigurationValue::getValue('channel_default_customer_email'),
@@ -78,13 +86,15 @@ class OrderMapper
             'channel_order_number' => (string)$payload['number'],
             'quantity' => $payload['quantity'],
             'c_item_id' => $payload['ordered_item_id'],
+            'c_item_product_id' => $payload['product_id'],
+            'c_item_variant_id' => $payload['stock_id'],
             'c_item_sku' => $payload['marketplace_product_code'],
             'c_item_title' => $payload['product_name'],
             'c_item_options' => json_encode($payload['product_option_name']),
             'c_item_currency_code' => $currency_code,
             'c_item_sales_price' => $payload['product_selling_price'],
             'c_item_supply_currency_code' => $currency_code,
-            'c_item_recorded_at' => Carbon::now()->toDateTimeString(),
+            'c_item_recorded_at' => $payload['ordered_date'] ?? '',
             'cc_item_customs_currency_code' => $currency_code,
 	        'cc_item_customs_value' => $payload['product_supply_price'],
         ];

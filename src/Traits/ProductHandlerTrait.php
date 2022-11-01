@@ -14,7 +14,7 @@ use App\Models\Features\Product;
 use Mxncommerce\ChannelConnector\Helpers\ChannelConnectorHelper;
 use Throwable;
 
-trait ProductTrait
+trait ProductHandlerTrait
 {
     /**
      * @param Product $product
@@ -27,6 +27,7 @@ trait ProductTrait
 
         $this->payload['input']['created_from'] =
             ConfigurationValue::getValue('channel_connector_identifier_from_channel');
+
         $this->payload['input']['name'] = (string)$product->descriptionSetWithLanguage?->title;
         $this->payload['input']['code'] = (string)$product->getRepresentativeProperty('sku');
         $this->payload['input']['marketplace_code'] = $product->id;
@@ -78,10 +79,13 @@ trait ProductTrait
         $this->payload['input']['category_slave_id'] = $channelCategoryPayload['category_slave_id'];
         $this->payload['input']['category_slave_id2'] =  $channelCategoryPayload['category_slave_id2'];
 
-        $this->payload['input']['image_main_url'] = stripslashes($product->media[0]->src);
+        $this->payload['input']['image_main_url'] =
+            config('channel_connector.nmo_image_root').stripslashes($product->media[0]->src);
 
         $this->payload['input']['detail_images'] = $product->media->map(function ($item) {
-            return [ 'detail_image_url' => stripslashes($item->src) ];
+            return [
+                'detail_image_url' => config('channel_connector.nmo_image_root').stripslashes($item->src)
+            ];
         });
 
         $this->payload['input']['stocks'] = $product->variants->map(function ($item) {
@@ -131,7 +135,7 @@ trait ProductTrait
      * Assuming that each cc-local category is connected with 2 channel-categories(Gender: 1, Category: 4)
      *
      * @param Category $localCategory
-     * @return int[]
+     * @return array|null
      */
     protected function getChannelCategoryFormat(Category $localCategory): array|null
     {
