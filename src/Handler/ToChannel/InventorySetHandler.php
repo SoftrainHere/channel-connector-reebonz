@@ -20,7 +20,7 @@ class InventorySetHandler extends ApiBase
      * @param InventorySet $inventorySet
      * @return bool
      */
-    public function created(InventorySet $inventorySet, string $mutationType = 'post'): bool
+    public function created(InventorySet $inventorySet, string $mutationType = 'put'): bool
     {
         ChannelConnectorFacade::echoDev(__CLASS__ . '->' .  __FUNCTION__);
 
