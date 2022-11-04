@@ -96,7 +96,11 @@ class ProductHandler extends ApiBase
             ChannelConnectorFacade::upsertSupplyPriceSentHistory($product);
 
         } catch (ProductWithoutCategoryException $e) {
-            $resyncWaitingProduct = new ResyncWaitingProduct();
+            $resyncWaitingProduct = ResyncWaitingProduct::whereProductId($product->id)->first();
+            if ($resyncWaitingProduct instanceof ResyncWaitingProduct) {
+                return true;
+            }
+
             $resyncWaitingProduct->product_id = $product->id;
             $resyncWaitingProduct->save();
         } catch (ProductWithoutChannelBrandException $e) {
