@@ -17,6 +17,7 @@ return [
         "username" => env('CHANNEL_USERNAME'),
         "password" => env('CHANNEL_PASSWORD')
     ],
+    'channel_connector_identifier' => env('CHANNEL_CONNECTOR_IDENTIFIER', 'api_mxn'),
     'commission' => env('CHANNEL_COMMISSION', 1),
 
     'logistics' => [

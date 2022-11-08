@@ -5,6 +5,7 @@ namespace Mxncommerce\ChannelConnector;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 use Mxncommerce\ChannelConnector\Console\Commands\GetOrdersFromChannel;
+use Mxncommerce\ChannelConnector\Console\Commands\InitializePackage;
 use Mxncommerce\ChannelConnector\Console\Commands\SetupChannelResources;
 use Mxncommerce\ChannelConnector\Helpers\ChannelConnectorHelper;
 
@@ -56,6 +57,7 @@ class ChannelConnectorServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
+                InitializePackage::class,
                 SetupChannelResources::class,
                 GetOrdersFromChannel::class
             ]);
