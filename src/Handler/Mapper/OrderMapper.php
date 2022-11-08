@@ -44,6 +44,7 @@ class OrderMapper
             's_phone' => $payload['phone'] ?? null ,
             's_address_1' => $payload['address'] ?? null,
             's_city' => ' . ',
+            's_postal_code' => self::extractPostalCode($payload['address'] ?? null),
             's_country_code' => $country_code,
             's_additional_note' => $payload['extra_request'] ?? null,
             's_customs_clearance_code' => $payload['clearance_number'] ?? null,
@@ -98,5 +99,19 @@ class OrderMapper
             'cc_item_customs_currency_code' => $currency_code,
 	        'cc_item_customs_value' => $payload['product_supply_price'],
         ];
+    }
+
+    private static function extractPostalCode(string|null $address):string|null
+    {
+        if (!$address) {
+            return null;
+        }
+
+        preg_match('/^\[\d+]/', $address, $matches);
+        if (!empty($matches[0])) {
+            return str_replace(['[',']'],'', $matches[0]);
+        } else {
+            return null;
+        }
     }
 }
