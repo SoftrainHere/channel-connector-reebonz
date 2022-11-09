@@ -13,6 +13,7 @@ use App\Models\Features\Order;
 use App\Models\Features\Variant;
 use App\Models\Override;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Mxncommerce\ChannelConnector\Handler\Mapper\OrderMapper;
@@ -29,21 +30,17 @@ class OrderCreate
     public function __invoke(array $payload): bool
     {
         try {
-            // Order is not saved to override
-//            $overrideModel = Override::whereIdFromRemote($payload['number'])
-//                ->where('overridable_type', Order::class)->first();
-//            if ($overrideModel instanceof Override) {
-//                //:order_id_from_channel) has been already saved to cc with(:order_id)',
-//                $message = trans('mxncommerce.channel-connector::channel_connector.errors.order_already_saved', [
-//                    'order_id_from_channel' => $payload['number'] ?? 'NA',
-//                    'order_id' => $order['stock_id'] ?? 'NA'
-//                ]);
-//                app(SendExceptionToCentralLog::class)(
-//                    [$message],
-//                    Response::HTTP_NOT_FOUND,
-//                );
-//                return false;
-//            }
+            $ordered_date= $payload['ordered_date'];
+            $ordered_item_id= $payload['ordered_item_id'];
+            $orderExist = Order::whereChannelOrderNumber($payload['number'])
+                ->whereHas('orderItems', function (Builder $query) use ($ordered_date,$ordered_item_id) {
+                    $query->where('c_item_recorded_at', $ordered_date);
+                    $query->where('c_item_id', $ordered_item_id);
+                })->count();
+
+            if ($orderExist) {
+                return false;
+            }
 
             $orderPayload['input'] = app(OrderMapper::class)->getModelPayload($payload);
             $orderPayload['input']['orderItems'][] = app(OrderMapper::class)->getModelItemPayload($payload);
@@ -52,13 +49,23 @@ class OrderCreate
                 return false;
             }
 
-            Validator::make(
+            $validator = Validator::make(
                 $orderPayload['input'],
                 app(CreateOrderInputValidator::class)->rules()
-            )->validate();
+            );
+
+            if ($validator->fails()) {
+                $message = trans('mxncommerce.channel-connector::channel_connector.errors.order_validation_failed', [
+                    'order_id_from_channel' => $payload['number'] ?? 'NA',
+                ]);
+                app(SendExceptionToCentralLog::class)(
+                    [$message],
+                    Response::HTTP_NOT_FOUND,
+                );
+                return false;
+            }
 
             if (ConfigurationValue::getValue('balance_enable')) {
-
                 $channelBalance = Balance::whereCurrencyId(
                     ConfigurationValue::getValue('channel_default_currency')
                 )->first();
@@ -81,7 +88,7 @@ class OrderCreate
 
                 if (
                     empty($payload['product_supply_price']) ||
-                    ((float)$variant->finalSupplyPrice !== (float)$payload['product_supply_price'])
+                    ((float)$variant->product->representative_supply_price !== (float)$payload['product_supply_price'])
                 ) {
                     if (ConfigurationValue::getValue('balance_order_cancel_when_supplied_price_not_match')) {
                         $message = trans('mxncommerce.channel-connector::channel_connector.errors.supplied_price_not_match', [

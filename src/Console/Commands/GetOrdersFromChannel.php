@@ -106,6 +106,14 @@ class GetOrdersFromChannel extends Command
             if ($variantModel instanceof Override) {
                 return true;
             }
+        } else {
+            $message = trans('mxncommerce.channel-connector::channel_connector.errors.product_not_connected', [
+                'product_id_from_channel' => $order['product_id'] ?? 'NA',
+            ]);
+            app(SendExceptionToCentralLog::class)(
+                [$message],
+                Response::HTTP_NOT_FOUND,
+            );
         }
 
         return false;

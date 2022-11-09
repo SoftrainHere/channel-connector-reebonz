@@ -39,6 +39,8 @@ return [
         'order_not_dealable' => 'Channel order(:order_id_from_channel) ' .
             'variant.override.id_from_remote(:variant_overrided_id) is not dealable',
         'order_already_saved' => 'Channel order(:order_id_from_channel) has been already saved to cc with(:order_id)',
+        'order_validation_failed' => 'Channel order(:order_id_from_channel) validation failed',
+        'product_not_connected' => 'Product ID(:product_id_from_channel) from remote does not exist in override',
         'supplied_price_not_match' => 'Channel order(:order_id_from_channel) has been cancelled' .
             '(supply_price_from_channel(:supply_price_from_channel) does not match with ' .
             'supply_price_from_system(:supply_price_from_system))',

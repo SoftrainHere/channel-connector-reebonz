@@ -69,6 +69,10 @@ trait ProductHandlerTrait
         // $this->payload['input']['product_notification'] = '';
         // $this->payload['input']['product_tip'] = '';
         // $this->payload['input']['size_info '] = '';
+        if (empty($product->representativeCategory)) {
+            throw new ProductWithoutCategoryException(null);
+        }
+
         $channelCategoryPayload = $this->getChannelCategoryFormat($product->representativeCategory);
         if (!$channelCategoryPayload) {
             throw new ProductWithoutCategoryException(null);

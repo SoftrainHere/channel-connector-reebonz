@@ -110,7 +110,7 @@ class ProductHandler extends ApiBase
                 ])],
                 Response::HTTP_FORBIDDEN,
             );
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             app(SendExceptionToCentralLog::class)(
                 ['Reebonz product sync error', $e->getMessage()],
                 $e->getCode()
