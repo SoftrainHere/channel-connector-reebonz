@@ -6,6 +6,7 @@ use App\Exceptions\Api\NotDealableOrderException;
 use App\GraphQL\Validators\Features\Order\CreateOrderInputValidator;
 use App\GraphQL\Mutations\Features\Order\OrderMutator;
 use App\Helpers\ChannelConnectorFacade;
+use App\Libraries\Dynamo\SendExceptionToCentralLog;
 use App\Models\Balance;
 use App\Models\Features\ConfigurationValue;
 use App\Models\Features\Order;
@@ -15,6 +16,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Mxncommerce\ChannelConnector\Handler\Mapper\OrderMapper;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class OrderCreate
@@ -27,11 +29,21 @@ class OrderCreate
     public function __invoke(array $payload): bool
     {
         try {
-            $overrideModel = Override::whereIdFromRemote($payload['number'])
-                ->where('overridable_type', Order::class)->first();
-            if ($overrideModel instanceof Override) {
-                return false;
-            }
+            // Order is not saved to override
+//            $overrideModel = Override::whereIdFromRemote($payload['number'])
+//                ->where('overridable_type', Order::class)->first();
+//            if ($overrideModel instanceof Override) {
+//                //:order_id_from_channel) has been already saved to cc with(:order_id)',
+//                $message = trans('mxncommerce.channel-connector::channel_connector.errors.order_already_saved', [
+//                    'order_id_from_channel' => $payload['number'] ?? 'NA',
+//                    'order_id' => $order['stock_id'] ?? 'NA'
+//                ]);
+//                app(SendExceptionToCentralLog::class)(
+//                    [$message],
+//                    Response::HTTP_NOT_FOUND,
+//                );
+//                return false;
+//            }
 
             $orderPayload['input'] = app(OrderMapper::class)->getModelPayload($payload);
             $orderPayload['input']['orderItems'][] = app(OrderMapper::class)->getModelItemPayload($payload);
@@ -72,6 +84,15 @@ class OrderCreate
                     ((float)$variant->finalSupplyPrice !== (float)$payload['product_supply_price'])
                 ) {
                     if (ConfigurationValue::getValue('balance_order_cancel_when_supplied_price_not_match')) {
+                        $message = trans('mxncommerce.channel-connector::channel_connector.errors.supplied_price_not_match', [
+                            'order_id_from_channel' => $payload['number'] ?? 'NA',
+                            'supply_price_from_channel' => $payload['product_supply_price'] ?? 'NA',
+                            'supply_price_from_system' => $variant->finalSupplyPrice ?? 'NA'
+                        ]);
+                        app(SendExceptionToCentralLog::class)(
+                            [$message],
+                            Response::HTTP_NOT_FOUND,
+                        );
                         return false;
                     }
 

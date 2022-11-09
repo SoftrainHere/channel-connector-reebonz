@@ -2,6 +2,7 @@
 
 namespace Mxncommerce\ChannelConnector\Console\Commands;
 
+use App\Libraries\Dynamo\SendExceptionToCentralLog;
 use App\Models\Features\ConfigurationValue;
 use App\Models\Features\Product;
 use App\Models\Features\Variant;
@@ -11,6 +12,7 @@ use Illuminate\Support\Carbon;
 use Mxncommerce\ChannelConnector\Handler\FromChannel\OrderCreate;
 use Mxncommerce\ChannelConnector\Handler\ToChannel\OrderHandler;
 use Mxncommerce\ChannelConnector\Helpers\ChannelConnectorHelper;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class GetOrdersFromChannel extends Command
@@ -49,6 +51,8 @@ class GetOrdersFromChannel extends Command
         $ordered_at_start = $today->subDay(1)->toDateString();
 
         $totalRequest = ConfigurationValue::getValue('total_page_number_to_request_channel_api') ?? 10;
+        $totalCount = 0;
+        $totalNotDealable = 0;
         for ($current_page=1; $current_page <= $totalRequest; $current_page++) {
             $param = [
                 'order_status' => 'completed',
@@ -58,18 +62,31 @@ class GetOrdersFromChannel extends Command
                 'current_page' => $current_page,
             ];
             $response = app(OrderHandler::class)->list($param);
-            if (!count($response['data']['orders'])) {
+            $count = count($response['data']['orders']);
+            $totalCount += $count;
+            if (!$count) {
                 break;
             }
 
             foreach ($response['data']['orders'] as $order) {
                 if (self::isDealable($order)) {
+                    echo 'Processing ' . $order['number'] . PHP_EOL;
                     app(OrderCreate::class)($order);
+                } else {
+                    $message = trans('mxncommerce.channel-connector::channel_connector.errors.order_not_dealable', [
+                        'order_id_from_channel' => $order['number'] ?? 'NA',
+                        'variant_overrided_id' => $order['stock_id'] ?? 'NA'
+                    ]);
+                    app(SendExceptionToCentralLog::class)(
+                        [$message],
+                        Response::HTTP_NOT_FOUND,
+                    );
+                    $totalNotDealable++;
                 }
             }
         }
 
-        echo 'Done schedule' . PHP_EOL;
+        echo 'Got ' . $totalCount . ' orders ' . $totalNotDealable . ' not dealable from scheduler' . PHP_EOL;
     }
 
     private static function isDealable(array $order): bool
