@@ -9,6 +9,7 @@ use App\Models\Features\Product;
 use App\Models\Features\Variant;
 use App\Models\Override;
 use Illuminate\Support\Carbon;
+use Str;
 use Throwable;
 
 class OrderMapper
@@ -30,6 +31,8 @@ class OrderMapper
                 (int)$payload['quantity'];
         }
 
+        $nameArray = self::extractName($payload['recipient'] ?? null);
+
         return [
             'channel_order_number' => (string)$payload['number'],
             'currency_code' => $currency_code,
@@ -39,11 +42,11 @@ class OrderMapper
             'customer_last_name' => $payload['order_user'],
             'customer_email' => ConfigurationValue::getValue('channel_default_customer_email'),
             'customer_phone' => $payload['phone'] ?? null,
-            's_first_name' => $payload['recipient'] ?? null ,
-            's_last_name' => $payload['recipient'] ?? null ,
+            's_first_name' => $nameArray[0] ,
+            's_last_name' => $nameArray[1] ,
             's_phone' => $payload['phone'] ?? null ,
             's_address_1' => $payload['address'] ?? null,
-            's_city' => ' . ',
+            's_city' => self::extractCity($payload['address'] ?? null),
             's_postal_code' => self::extractPostalCode($payload['address'] ?? null),
             's_country_code' => $country_code,
             's_additional_note' => $payload['extra_request'] ?? null,
@@ -113,5 +116,29 @@ class OrderMapper
         } else {
             return null;
         }
+    }
+
+    private static function extractCity(string|null $address):string
+    {
+        if (!$address) {
+            return '.';
+        }
+
+        $explodes = explode(' ', $address);
+        return $explodes[1] ?? '.';
+    }
+
+    private static function extractName(string|null $fullName):array
+    {
+        if (!$fullName) {
+            return [];
+        }
+
+        $nameArray = [];
+        $len = Str::length($fullName);
+        $nameArray[0] = Str::substr($fullName, 0, 1);
+        $nameArray[1] = Str::substr($fullName, 1, $len);
+
+        return $nameArray;
     }
 }
