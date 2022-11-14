@@ -33,8 +33,8 @@ trait ProductHandlerTrait
         $this->payload['input']['marketplace_code'] = $product->id;
 
         $this->payload['input']['available'] =
-            $product->status === ProductStatusType::Active->value &&
-            $product->sales_status === ProductSalesStatusType::Enabled->value;
+            ($product->status === ProductStatusType::Active->value &&
+            $product->sales_status === ProductSalesStatusType::Enabled->value) ? 1 : 0;
 
         if (ConfigurationValue::getValue('use_brand_mapper')) {
             if(!count($product->vendorBrand->brand->channelBrand)) {
@@ -92,28 +92,29 @@ trait ProductHandlerTrait
             ];
         });
 
-        $this->payload['input']['stocks'] = $product->variants->map(function ($item) {
-            $options = json_decode(
-                app(ChannelConnectorHelper::class)->buildValidJson($item->options),
-                true
-            );
+        if (!$product->override || !$product->override->id_from_remote) {
+            $this->payload['input']['stocks'] = $product->variants->map(function ($item) {
+                $options = json_decode(
+                    app(ChannelConnectorHelper::class)->buildValidJson($item->options),
+                    true
+                );
 
-            $optionStringForChannel = '';
+                $optionStringForChannel = '';
 
-            foreach ($options as $option) {
-                if (is_array($option)) {
-                    $optionStringForChannel .= $option['name']  . '=' . $option['value'] .', ';
+                foreach ($options as $option) {
+                    if (is_array($option)) {
+                        $optionStringForChannel .= $option['name']  . '=' . $option['value'] .', ';
+                    }
                 }
-            }
 
-            return [
-                'option_group_name' => 'option',
-                'option_name' => $optionStringForChannel,
-                'stock_count' => $item->inventorySet->available_stock_qty,
-                'item_no' => $item->id
-            ];
-        });
-
+                return [
+                    'option_group_name' => $item->sku,
+                    'option_name' => $optionStringForChannel,
+                    'stock_count' => $item->inventorySet->available_stock_qty,
+                    'item_no' => $item->id
+                ];
+            });
+        }
         return $this;
     }
 
