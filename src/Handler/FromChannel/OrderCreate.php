@@ -12,6 +12,7 @@ use App\Models\Features\ConfigurationValue;
 use App\Models\Features\Order;
 use App\Models\Features\Variant;
 use App\Models\Override;
+use App\Models\SupplyPriceSentHistory;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -74,8 +75,6 @@ class OrderCreate
                     return false;
                 }
 
-                $totalChannelOrderAmount = (int)$payload['product_supply_price'] * (int)$payload['quantity'];
-
                 $variant = Override::whereIdFromRemote($payload['stock_id'])
                     ->where('overridable_type', Variant::class)
                     ->firstOrFail()->overridable;
@@ -84,38 +83,69 @@ class OrderCreate
                     return false;
                 }
 
-                $variantUnitSupplyPrice = $variant->finalSupplyPrice;
+                $lastSuppliedSent = $variant->supplyPriceSentHistories->last();
+                if (!$lastSuppliedSent instanceof SupplyPriceSentHistory) {
+                    $lastSuppliedSent = $variant->product->supplyPriceSentHistories->last();
+                }
 
-                if (
-                    empty($payload['product_supply_price']) ||
-                    ((float)$variant->product->representative_supply_price !== (float)$payload['product_supply_price'])
-                ) {
-                    if (ConfigurationValue::getValue('balance_order_cancel_when_supplied_price_not_match')) {
-                        $message = trans('mxncommerce.channel-connector::channel_connector.errors.supplied_price_not_match', [
-                            'order_id_from_channel' => $payload['number'] ?? 'NA',
-                            'supply_price_from_channel' => $payload['product_supply_price'] ?? 'NA',
-                            'supply_price_from_system' => $variant->finalSupplyPrice ?? 'NA'
-                        ]);
-                        app(SendExceptionToCentralLog::class)(
-                            [$message],
-                            Response::HTTP_NOT_FOUND,
-                        );
-                        return false;
-                    }
+                if (empty($lastSuppliedSent->final_supply_price)) {
+                    $message = trans('mxncommerce.channel-connector::channel_connector.errors.no_supply_price_history', [
+                        'variant_id' => $variant->id,
+                        'product_id' => $variant->product->id,
+                    ]);
+                    app(SendExceptionToCentralLog::class)(
+                        [$message],
+                        Response::HTTP_NOT_FOUND,
+                    );
+                    return false;
+                }
 
-                    if (ConfigurationValue::getValue('balance_type_of_debit') === 'VALUE_OF_CURRENT_SYSTEM') {
-                        $lastSuppliedSent = $variant->supplyPriceSentHistories->last();
-                        $variantUnitSupplyPrice = $lastSuppliedSent->final_supply_price ?? $variant->finalSupplyPrice;
-                        $totalChannelOrderAmount = (float)$variantUnitSupplyPrice * (int)$payload['quantity'];
+                $supplyPriceHistory = (float)$lastSuppliedSent->final_supply_price;
+                $supplyPriceCurrent = (float)$variant->product->representative_supply_price;
+
+                $variantUnitSupplyPrice = $supplyPriceHistory;
+
+                if ($supplyPriceHistory !== $supplyPriceCurrent) {
+                    if ($supplyPriceHistory > $supplyPriceCurrent) {
+                        $cond = ConfigurationValue::getValue('balance_history_supply_price_more_than_current');
+                        if ( $cond === 'ORDER_CANCEL') {
+                            $message = trans('mxncommerce.channel-connector::channel_connector.errors.supplied_price_not_match', [
+                                'supply_price_history' => $supplyPriceHistory,
+                                'supply_price_current' => $supplyPriceCurrent,
+                            ]);
+                            app(SendExceptionToCentralLog::class)(
+                                [$message],
+                                Response::HTTP_NOT_FOUND,
+                            );
+                            return false;
+                        } elseif ($cond === 'DEDUCT_CURRENT') {
+                            $variantUnitSupplyPrice = $supplyPriceCurrent;
+                        }
+                    } else {
+                        $cond = ConfigurationValue::getValue('balance_history_supply_price_less_than_current');
+                        if ($cond === 'ORDER_CANCEL') {
+                            $message = trans('mxncommerce.channel-connector::channel_connector.errors.supplied_price_not_match', [
+                                'supply_price_history' => $supplyPriceHistory,
+                                'supply_price_current' => $supplyPriceCurrent,
+                            ]);
+                            app(SendExceptionToCentralLog::class)(
+                                [$message],
+                                Response::HTTP_NOT_FOUND,
+                            );
+                            return false;
+                        } elseif ($cond === 'DEDUCT_CURRENT') {
+                            $variantUnitSupplyPrice = $supplyPriceCurrent;
+                        }
                     }
                 }
 
+                $totalChannelOrderAmount = $variantUnitSupplyPrice * (int)$payload['quantity'];
                 if (!$totalChannelOrderAmount || $channelBalance->balance < $totalChannelOrderAmount) {
                     return false;
                 }
 
                 $orderPayload['input']['total_order_amount'] = $totalChannelOrderAmount;
-                $orderPayload['input']['orderItems'][0]['c_item_supply_price'] = $variantUnitSupplyPrice;
+                $orderPayload['input']['orderItems'][0]['cc_item_supply_price'] = $variantUnitSupplyPrice;
 
                 DB::beginTransaction();
 
@@ -150,4 +180,5 @@ class OrderCreate
             return false;
         }
     }
+
 }

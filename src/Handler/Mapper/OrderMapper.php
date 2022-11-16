@@ -98,6 +98,7 @@ class OrderMapper
             'c_item_currency_code' => $currency_code,
             'c_item_sales_price' => $payload['product_selling_price'],
             'c_item_supply_currency_code' => $currency_code,
+            'c_item_supply_price' => $payload['product_supply_price'] ?? null,
             'c_item_recorded_at' => $payload['ordered_date'] ?? '',
             'cc_item_customs_currency_code' => $currency_code,
 	        'cc_item_customs_value' => $payload['product_supply_price'],

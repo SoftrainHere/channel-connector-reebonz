@@ -36,14 +36,15 @@ return [
         'no_category_in_product' => 'Product(:product_id) does not have default category',
         'no_medium_in_product' => 'Product(:product_id) does not have default medium',
         'no_product_found' => 'Product(:product_id) was not found from package',
+        'no_supply_price_history' => 'No supply_price history found for product(:product_id) or variant(:variant_id)',
         'order_not_dealable' => 'Channel order(:order_id_from_channel) ' .
             'variant.override.id_from_remote(:variant_overrided_id) is not dealable',
         'order_already_saved' => 'Channel order(:order_id_from_channel) has been already saved to cc with(:order_id)',
         'order_validation_failed' => 'Channel order(:order_id_from_channel) validation failed',
         'product_not_connected' => 'Product ID(:product_id_from_channel) from remote does not exist in override',
         'supplied_price_not_match' => 'Channel order(:order_id_from_channel) has been cancelled' .
-            '(supply_price_from_channel(:supply_price_from_channel) does not match with ' .
-            'supply_price_from_system(:supply_price_from_system))',
+            '(history supply_price(:supply_price_history) does not match with ' .
+            'current supply_price(:supply_price_current))',
         'wrong_credential_for_channel' => 'Failed to renew token from channel-api with given credential',
     ],
 ];
