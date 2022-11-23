@@ -107,7 +107,7 @@ class OrderCreate
 
                 if ($supplyPriceHistory !== $supplyPriceCurrent) {
                     if ($supplyPriceHistory > $supplyPriceCurrent) {
-                        $cond = ConfigurationValue::getValue('balance_history_supply_price_more_than_current');
+                        $cond = ConfigurationValue::getValue('balance_channel_supply_price_more_than_connector');
                         if ( $cond === 'ORDER_CANCEL') {
                             $message = trans('mxncommerce.channel-connector::channel_connector.errors.supplied_price_not_match', [
                                 'supply_price_history' => $supplyPriceHistory,
@@ -122,7 +122,7 @@ class OrderCreate
                             $variantUnitSupplyPrice = $supplyPriceCurrent;
                         }
                     } else {
-                        $cond = ConfigurationValue::getValue('balance_history_supply_price_less_than_current');
+                        $cond = ConfigurationValue::getValue('balance_channel_supply_price_less_than_connector');
                         if ($cond === 'ORDER_CANCEL') {
                             $message = trans('mxncommerce.channel-connector::channel_connector.errors.supplied_price_not_match', [
                                 'supply_price_history' => $supplyPriceHistory,
