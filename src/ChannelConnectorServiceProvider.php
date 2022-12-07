@@ -33,7 +33,7 @@ class ChannelConnectorServiceProvider extends ServiceProvider
             $schedule->command('command:get-orders')
                 ->withoutOverlapping()
                 ->runInBackground()
-                ->everyFifteenMinutes()
+                ->everyFiveMinutes()
             ;
         });
     }

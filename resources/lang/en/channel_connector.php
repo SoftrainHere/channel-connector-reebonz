@@ -42,6 +42,7 @@ return [
         'order_already_saved' => 'Channel order(:order_id_from_channel) has been already saved to cc with(:order_id)',
         'order_validation_failed' => 'Channel order(:order_id_from_channel) validation failed',
         'product_not_connected' => 'Product ID(:product_id_from_channel) from remote does not exist in override',
+        'product_creation_error' => 'Failed to create product(:product_id) -> :message',
         'supplied_price_not_match' => 'Channel order(:order_id_from_channel) has been cancelled' .
             '(history supply_price(:supply_price_history) does not match with ' .
             'current supply_price(:supply_price_current))',

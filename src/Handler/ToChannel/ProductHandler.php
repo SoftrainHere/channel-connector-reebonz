@@ -56,10 +56,17 @@ class ProductHandler extends ApiBase
             $response = $this->buildCreatePayload($product)->requestMutation($apiEndpoint);
 
             if ($response['result'] != 'success') {
+                $error_namespace = 'mxncommerce.channel-connector::channel_connector.errors.product_creation_error';
+                $error = trans($error_namespace, [
+                    'product_id' => $product->id,
+                    'message' => $response['message']
+                ]);
+
                 app(SendExceptionToCentralLog::class)(
-                    ['Reebonz product-created error', 'got wrong response from reebonz'],
+                    [$error],
                     Response::HTTP_FORBIDDEN
                 );
+                return false;
             }
 
             $payloadFromRemote = [
@@ -111,9 +118,16 @@ class ProductHandler extends ApiBase
                 Response::HTTP_FORBIDDEN,
             );
         } catch (Throwable $e) {
+
+            $error_namespace = 'mxncommerce.channel-connector::channel_connector.errors.product_creation_error';
+            $error = trans($error_namespace, [
+                'product_id' => $product->id,
+                'message' => $e->getMessage()
+            ]);
+
             app(SendExceptionToCentralLog::class)(
-                ['Reebonz product sync error', $e->getMessage()],
-                $e->getCode()
+                [$error],
+                Response::HTTP_FORBIDDEN
             );
         }
 
