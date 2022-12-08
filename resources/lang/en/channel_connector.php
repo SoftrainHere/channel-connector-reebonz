@@ -26,8 +26,9 @@ return [
             'stock_update' => '/product/products/:product_id/stock_update.json'
         ]
     ],
-
     'errors' => [
+        'balance_currency_not_match' => 'Different currency ' .
+            'between balance(:balance_currency_id) and variant(:variant_currency_id) in order(:channel_order_id)',
         'no_api_endpoint' => 'Api-endpoint was not specified',
         'price_set_update' => 'Price-set update error for Vendor(:vendor_id) / Product(:product_id)',
         'inventory_set_update' => 'Inventory-set update error for Vendor(:vendor_id) / Product(:product_id)',
@@ -37,6 +38,7 @@ return [
         'no_medium_in_product' => 'Product(:product_id) does not have default medium',
         'no_product_found' => 'Product(:product_id) was not found from package',
         'no_supply_price_history' => 'No supply_price history found for product(:product_id) or variant(:variant_id)',
+        'not_enough_balance' => 'Balance (:balance_id) is not enough for order(:order_id)',
         'order_not_dealable' => 'Channel order(:order_id_from_channel) ' .
             'variant.override.id_from_remote(:variant_overrided_id) is not dealable',
         'order_already_saved' => 'Channel order(:order_id_from_channel) has been already saved to cc with(:order_id)',

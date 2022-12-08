@@ -80,6 +80,15 @@ class OrderCreate
                     ->firstOrFail()->overridable;
 
                 if ($variant->currency_id !== $channelBalance->currency_id) {
+                    $message = trans('mxncommerce.channel-connector::channel_connector.errors.balance_currency_not_match', [
+                        'channel_order_id' => $payload['number'],
+                        'variant_currency_id' => $variant->currency_id,
+                        'balance_currency_id' => $channelBalance->currency_id,
+                    ]);
+                    app(SendExceptionToCentralLog::class)(
+                        [$message],
+                        Response::HTTP_NOT_FOUND,
+                    );
                     return false;
                 }
 
@@ -141,6 +150,14 @@ class OrderCreate
 
                 $totalChannelOrderAmount = $variantUnitSupplyPrice * (int)$payload['quantity'];
                 if (!$totalChannelOrderAmount || $channelBalance->balance < $totalChannelOrderAmount) {
+                    $message = trans('mxncommerce.channel-connector::channel_connector.errors.not_enough_balance', [
+                        'balance_id' => $channelBalance->id,
+                        'channel_order_id' => $payload['number']
+                    ]);
+                    app(SendExceptionToCentralLog::class)(
+                        [$message],
+                        Response::HTTP_NOT_FOUND,
+                    );
                     return false;
                 }
 
