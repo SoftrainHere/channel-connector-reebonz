@@ -156,6 +156,12 @@ class ProductHandler extends ApiBase
                 );
             }
 
+            /*
+             | ------------------------------------------------------------
+             | Upsert last History of supplied price of product to channel
+             | ------------------------------------------------------------
+             */
+            ChannelConnectorFacade::upsertSupplyPriceSentHistory($product);
         } catch (Exception $e) {
             app(SendExceptionToCentralLog::class)(
                 ['Reebonz product sync error', $e->getMessage()],
