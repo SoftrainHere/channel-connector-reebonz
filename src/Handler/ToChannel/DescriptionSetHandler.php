@@ -14,6 +14,20 @@ class DescriptionSetHandler extends ApiBase
      * @throws Throwable
      * @throws \App\Exceptions\Api\SaveToCentralException
      */
+    public function created(Product $product): bool
+    {
+        if($product->descriptionSets->count() > 1) {
+            return app(ProductHandler::class)->updated($product);
+        }
+        return true;
+    }
+
+    /**
+     * @param Product $product
+     * @return bool
+     * @throws Throwable
+     * @throws \App\Exceptions\Api\SaveToCentralException
+     */
     public function updated(Product $product): bool
     {
         return app(ProductHandler::class)->updated($product);

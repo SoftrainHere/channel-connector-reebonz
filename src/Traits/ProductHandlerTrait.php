@@ -2,10 +2,9 @@
 
 namespace Mxncommerce\ChannelConnector\Traits;
 
-use App\Enums\ProductSalesStatusType;
-use App\Enums\ProductStatusType;
 use App\Exceptions\Api\ProductWithoutCategoryException;
 use App\Exceptions\Api\ProductWithoutChannelBrandException;
+use App\Helpers\ChannelConnectorFacade;
 use App\Models\ChannelCategory;
 use App\Models\Features\Category;
 use App\Models\Features\ConfigurationValue;
@@ -31,10 +30,7 @@ trait ProductHandlerTrait
         $this->payload['input']['name'] = (string)$product->descriptionSetWithLanguage?->title;
         $this->payload['input']['code'] = (string)$product->getRepresentativeProperty('sku');
         $this->payload['input']['marketplace_code'] = $product->id;
-
-        $this->payload['input']['available'] =
-            ($product->status === ProductStatusType::Active->value &&
-            $product->sales_status === ProductSalesStatusType::Enabled->value) ? 1 : 0;
+        $this->payload['input']['available'] = 1;
 
         if (ConfigurationValue::getValue('use_brand_mapper')) {
             if(!count($product->vendorBrand->brand->channelBrand)) {
@@ -115,6 +111,24 @@ trait ProductHandlerTrait
                 ];
             });
         }
+        return $this;
+    }
+
+    /**
+     * @param Product $product
+     * @return $this
+     * @throws Throwable
+     */
+    public function buildDisablePayload(Product $product): static
+    {
+        $this->payload = [];
+
+        $this->payload['input']['created_from'] =
+            ConfigurationValue::getValue('channel_connector_identifier_from_channel');
+
+        $this->payload['input']['available'] =
+            ChannelConnectorFacade::isSalesDisabled($product) ? 0 : 1;
+
         return $this;
     }
 
