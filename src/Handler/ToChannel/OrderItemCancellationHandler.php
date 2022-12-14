@@ -52,4 +52,29 @@ class OrderItemCancellationHandler extends ApiBase
 
         return true;
     }
+
+    /**
+     * @param int $channelOrderItemId
+     * @return bool
+     */
+    public function cancelBeforeSync(int $channelOrderItemId): bool
+    {
+        ChannelConnectorFacade::echoDev(__CLASS__ . '->' .  __FUNCTION__);
+
+        try {
+            $apiEndpoint = self::getFullChannelApiEndpoint(
+                'post.request_cancel',
+                ['ordered_item_id' => $channelOrderItemId]
+            );
+            $this->requestMutation($apiEndpoint);
+
+        } catch (Exception $e) {
+            app(SendExceptionToCentralLog::class)(
+                ['Reebonz order-cancellation-created sync error', $e->getMessage()],
+                $e->getCode()
+            );
+        }
+
+        return true;
+    }
 }

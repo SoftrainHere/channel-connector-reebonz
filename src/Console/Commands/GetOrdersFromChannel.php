@@ -11,6 +11,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Mxncommerce\ChannelConnector\Handler\FromChannel\OrderCreate;
 use Mxncommerce\ChannelConnector\Handler\ToChannel\OrderHandler;
+use Mxncommerce\ChannelConnector\Handler\ToChannel\OrderItemCancellationHandler;
 use Mxncommerce\ChannelConnector\Helpers\ChannelConnectorHelper;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -82,6 +83,9 @@ class GetOrdersFromChannel extends Command
                         Response::HTTP_NOT_FOUND,
                     );
                     $totalNotDealable++;
+
+                    // todo: request order-cancellation to channel
+                    app(OrderItemCancellationHandler::class)->cancelBeforeSync($order['ordered_item_id']);
                 }
             }
         }
