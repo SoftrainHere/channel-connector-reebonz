@@ -2,6 +2,8 @@
 
 namespace Mxncommerce\ChannelConnector\Traits;
 
+use App\Enums\VariantSalesStatusType;
+use App\Enums\VariantStatusType;
 use App\Exceptions\Api\ProductWithoutCategoryException;
 use App\Exceptions\Api\ProductWithoutChannelBrandException;
 use App\Helpers\ChannelConnectorFacade;
@@ -39,15 +41,23 @@ trait ProductHandlerTrait
         }
 
         $this->payload['input']['brand_id'] = $product->vendorBrand->brand->channelBrand[0]->id;
-//        $this->payload['input']['marketplace_price'] = (string)$product->representative_supply_price;
         $this->payload['input']['marketplace_price'] = ceil($product->representative_supply_price);
         $this->payload['input']['commission'] = config('channel_connector_for_remote.commission');
         $this->payload['input']['material'] = $product->getRepresentativeProperty('materials');
         // $this->payload['input']['color'] = '';
         // $this->payload['input']['model_name'] = '';
         // $this->payload['input']['season'] = '';
-        $this->payload['input']['country'] =
-            Country::find(ConfigurationValue::getValue('channel_default_country'))->alpha_2;
+
+        if ($product->representativeVariant->count()) {
+            $representativeVariant = $product->representativeVariant[0];
+        } else {
+            $representativeVariant = $product->variants
+                ->where('status', VariantStatusType::Active->value)
+                ->where('sales_status', VariantSalesStatusType::Enabled->value)
+                ->first();
+        }
+        $this->payload['input']['country'] = Country::find($representativeVariant->coo_id)->name;
+
         // $this->payload['input']['product_feature'] = '';
         // $this->payload['input']['size_standard'] = '';
         $descriptionSet = $product->descriptionSetWithLanguage;
