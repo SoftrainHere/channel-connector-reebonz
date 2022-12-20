@@ -164,6 +164,41 @@ class ProductHandler extends ApiBase
                 );
             }
 
+            /*
+             | ------------------------------------------------------------
+             | Upsert last History of supplied price of product to channel
+             | ------------------------------------------------------------
+             */
+            ChannelConnectorFacade::upsertSupplyPriceSentHistory($product);
+        } catch (Exception $e) {
+            app(SendExceptionToCentralLog::class)(
+                ['Reebonz product sync error', $e->getMessage()],
+                $e->getCode()
+            );
+        }
+        return true;
+    }
+
+    /**
+     * @param Product $product
+     * @return bool
+     * @throws Throwable
+     */
+    public function disabled(Product $product): bool
+    {
+        try {
+            $apiEndpoint = self::getFullChannelApiEndpoint(
+                'put.products',
+                [ 'product_id' => $product->override->id_from_remote ]
+            );
+            $response = $this->buildDisablePayload($product)->requestMutation($apiEndpoint, 'put');
+
+            if ($response['result'] != 'success') {
+                app(SendExceptionToCentralLog::class)(
+                    ['Reebonz product-created error', 'got wrong response from reebonz'],
+                    Response::HTTP_FORBIDDEN
+                );
+            }
         } catch (Exception $e) {
             app(SendExceptionToCentralLog::class)(
                 ['Reebonz product sync error', $e->getMessage()],

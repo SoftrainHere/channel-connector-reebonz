@@ -2,17 +2,18 @@
 
 namespace Mxncommerce\ChannelConnector\Traits;
 
-use App\Enums\ProductSalesStatusType;
-use App\Enums\ProductStatusType;
+use App\Enums\VariantSalesStatusType;
+use App\Enums\VariantStatusType;
 use App\Exceptions\Api\ProductWithoutCategoryException;
 use App\Exceptions\Api\ProductWithoutChannelBrandException;
 use App\Exceptions\Api\ProductWithoutImageException;
+use App\Helpers\ChannelConnectorFacade;
 use App\Models\ChannelCategory;
 use App\Models\Features\Category;
 use App\Models\Features\ConfigurationValue;
 use App\Models\Features\Country;
-use App\Models\Features\Medium;
 use App\Models\Features\Product;
+use App\Models\Features\Medium;
 use Mxncommerce\ChannelConnector\Helpers\ChannelConnectorHelper;
 use Throwable;
 
@@ -33,10 +34,7 @@ trait ProductHandlerTrait
         $this->payload['input']['name'] = (string)$product->descriptionSetWithLanguage?->title;
         $this->payload['input']['code'] = (string)$product->getRepresentativeProperty('sku');
         $this->payload['input']['marketplace_code'] = $product->id;
-
-        $this->payload['input']['available'] =
-            ($product->status === ProductStatusType::Active->value &&
-            $product->sales_status === ProductSalesStatusType::Enabled->value) ? 1 : 0;
+        $this->payload['input']['available'] = 1;
 
         if (ConfigurationValue::getValue('use_brand_mapper')) {
             if(!count($product->vendorBrand->brand->channelBrand)) {
@@ -45,15 +43,23 @@ trait ProductHandlerTrait
         }
 
         $this->payload['input']['brand_id'] = $product->vendorBrand->brand->channelBrand[0]->id;
-//        $this->payload['input']['marketplace_price'] = (string)$product->representative_supply_price;
         $this->payload['input']['marketplace_price'] = ceil($product->representative_supply_price);
         $this->payload['input']['commission'] = config('channel_connector_for_remote.commission');
         $this->payload['input']['material'] = $product->getRepresentativeProperty('materials');
         // $this->payload['input']['color'] = '';
         // $this->payload['input']['model_name'] = '';
         // $this->payload['input']['season'] = '';
-        $this->payload['input']['country'] =
-            Country::find(ConfigurationValue::getValue('channel_default_country'))->alpha_2;
+
+        if ($product->representativeVariant->count()) {
+            $representativeVariant = $product->representativeVariant[0];
+        } else {
+            $representativeVariant = $product->variants
+                ->where('status', VariantStatusType::Active->value)
+                ->where('sales_status', VariantSalesStatusType::Enabled->value)
+                ->first();
+        }
+        $this->payload['input']['country'] = Country::find($representativeVariant->coo_id)->name;
+
         // $this->payload['input']['product_feature'] = '';
         // $this->payload['input']['size_standard'] = '';
         $descriptionSet = $product->descriptionSetWithLanguage;
@@ -87,11 +93,13 @@ trait ProductHandlerTrait
 
         $this->payload['input']['image_main_url'] =
             config('channel_connector.nmo_image_root').stripslashes($product->media[0]->src);
+
         if (empty(collect($product->media)->filter(function (Medium $medium){
             return $medium['src'] !== env("IMG_SRC");
         })->all())) {
             throw new ProductWithoutImageException(null);
         }
+
         $this->payload['input']['detail_images'] = $product->media->map(function ($item) {
             return [
                 'detail_image_url' => config('channel_connector.nmo_image_root').stripslashes($item->src)
@@ -121,6 +129,24 @@ trait ProductHandlerTrait
                 ];
             });
         }
+        return $this;
+    }
+
+    /**
+     * @param Product $product
+     * @return $this
+     * @throws Throwable
+     */
+    public function buildDisablePayload(Product $product): static
+    {
+        $this->payload = [];
+
+        $this->payload['input']['created_from'] =
+            ConfigurationValue::getValue('channel_connector_identifier_from_channel');
+
+        $this->payload['input']['available'] =
+            ChannelConnectorFacade::isSalesDisabled($product) ? 0 : 1;
+
         return $this;
     }
 
