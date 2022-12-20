@@ -45,6 +45,7 @@ return [
         'order_validation_failed' => 'Channel order(:order_id_from_channel) validation failed',
         'product_not_connected' => 'Product ID(:product_id_from_channel) from remote does not exist in override',
         'product_creation_error' => 'Failed to create product(:product_id) -> :message',
+        'product_without_image'  => 'Product(:product_id) does not have image',
         'supplied_price_not_match' => 'Channel order(:order_id_from_channel) has been cancelled' .
             '(history supply_price(:supply_price_history) does not match with ' .
             'current supply_price(:supply_price_current))',
