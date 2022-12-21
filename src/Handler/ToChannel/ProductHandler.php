@@ -4,7 +4,6 @@ namespace Mxncommerce\ChannelConnector\Handler\ToChannel;
 
 use App\Exceptions\Api\ProductWithoutCategoryException;
 use App\Exceptions\Api\ProductWithoutChannelBrandException;
-use App\Exceptions\Api\ProductWithoutImageException;
 use App\Exceptions\Api\SaveToCentralException;
 use App\Helpers\ChannelConnectorFacade;
 use App\Libraries\Dynamo\SendExceptionToCentralLog;
@@ -114,13 +113,6 @@ class ProductHandler extends ApiBase
         } catch (ProductWithoutChannelBrandException $e) {
             app(SendExceptionToCentralLog::class)(
                 [trans('errors.product_without_channel_brand', [
-                    'product_id' => $product->id
-                ])],
-                Response::HTTP_FORBIDDEN,
-            );
-        } catch (ProductWithoutImageException $e) {
-            app(SendExceptionToCentralLog::class)(
-                [trans('mxncommerce.channel-connector::channel_connector.errors.product_without_image', [
                     'product_id' => $product->id
                 ])],
                 Response::HTTP_FORBIDDEN,

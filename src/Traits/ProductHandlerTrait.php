@@ -6,14 +6,12 @@ use App\Enums\VariantSalesStatusType;
 use App\Enums\VariantStatusType;
 use App\Exceptions\Api\ProductWithoutCategoryException;
 use App\Exceptions\Api\ProductWithoutChannelBrandException;
-use App\Exceptions\Api\ProductWithoutImageException;
 use App\Helpers\ChannelConnectorFacade;
 use App\Models\ChannelCategory;
 use App\Models\Features\Category;
 use App\Models\Features\ConfigurationValue;
 use App\Models\Features\Country;
 use App\Models\Features\Product;
-use App\Models\Features\Medium;
 use Mxncommerce\ChannelConnector\Helpers\ChannelConnectorHelper;
 use Throwable;
 
@@ -93,12 +91,6 @@ trait ProductHandlerTrait
 
         $this->payload['input']['image_main_url'] =
             config('channel_connector.nmo_image_root').stripslashes($product->media[0]->src);
-
-        if (empty(collect($product->media)->filter(function (Medium $medium){
-            return $medium['src'] !== env("IMG_SRC");
-        })->all())) {
-            throw new ProductWithoutImageException(null);
-        }
 
         $this->payload['input']['detail_images'] = $product->media->map(function ($item) {
             return [
