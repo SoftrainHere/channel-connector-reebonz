@@ -72,4 +72,5 @@ return [
         ['normal' => '눈에 띄는 스크래치, 탈색, 오염이 있는 상품']
     ],
     'img_src' => env('IMG_SRC','/images/default_image_large.jpg'),
+    'local_currency_code' => env('CHANNEL_CURRENCY_CODE','JPY'),
 ];
