@@ -44,6 +44,8 @@ trait ProductHandlerTrait
 
         $this->payload['input']['brand_id'] = $product->vendorBrand->brand->channelBrand[0]->id;
         $this->payload['input']['marketplace_price'] = ceil($product->representative_supply_price);
+        $this->payload['input']['local_currency_price'] = ceil($product->representative_supply_price);
+        $this->payload['input']['local_currency_code'] = config('channel_connector_for_remote.local_currency_code');
         $this->payload['input']['commission'] = config('channel_connector_for_remote.commission');
         $this->payload['input']['material'] = $product->getRepresentativeProperty('materials');
         // $this->payload['input']['color'] = '';
