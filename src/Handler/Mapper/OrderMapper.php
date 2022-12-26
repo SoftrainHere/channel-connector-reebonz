@@ -33,6 +33,15 @@ class OrderMapper
 
         $nameArray = self::extractName($payload['recipient'] ?? null);
 
+        $data = ['business_identification_number'=>ConfigurationValue::getValue('business_identification_number'),
+            'business_identification_name'=>ConfigurationValue::getValue('business_identification_name')];
+        if((int)ConfigurationValue::getValue('use_business_identification_number') === 1) {
+            $meta_data=json_encode($data);
+        } else {
+            $meta_data = null;
+        }
+
+
         return [
             'channel_order_number' => (string)$payload['number'],
             'currency_code' => $currency_code,
@@ -56,7 +65,7 @@ class OrderMapper
             'b_address_1' => $payload['address'] ?? null,
             'b_city' => ' . ',
             'b_country_code' => $country_code,
-            'meta_data' => null,
+            'meta_data' => $meta_data,
         ];
     }
 
