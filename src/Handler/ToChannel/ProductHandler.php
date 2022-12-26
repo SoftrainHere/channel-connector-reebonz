@@ -41,14 +41,11 @@ class ProductHandler extends ApiBase
     {
         ChannelConnectorFacade::echoDev(__CLASS__ . '->' .  __FUNCTION__);
 
-        $this->waitUntil('product creating...');
-
         if (
             !($product->vendorBrand instanceof VendorBrand) ||
             !count($product->variants) ||
             !count($product->descriptionSets)
         ) {
-            $this->waitUntil(Product::REL_VENDOR_BRAND, $this->sleepCount);
             return false;
         }
 

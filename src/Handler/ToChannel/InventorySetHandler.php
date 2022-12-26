@@ -18,6 +18,7 @@ class InventorySetHandler extends ApiBase
 
     /**
      * @param InventorySet $inventorySet
+     * @param string $mutationType
      * @return bool
      */
     public function created(InventorySet $inventorySet, string $mutationType = 'put'): bool
