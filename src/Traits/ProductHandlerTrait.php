@@ -96,11 +96,11 @@ trait ProductHandlerTrait
         $this->payload['input']['image_main_url'] =
             config('channel_connector.nmo_image_root').stripslashes($product->media[0]->src);
 
-        if (empty(collect($product->media)->filter(function (Medium $medium){
-            return $medium['src'] !== config('channel_connector_for_remote.img_src');
-        })->all())) {
-            throw new ProductWithoutImageException(null);
-        }
+//        if (empty(collect($product->media)->filter(function (Medium $medium){
+//            return $medium['src'] !== config('channel_connector_for_remote.img_src');
+//        })->all())) {
+//            throw new ProductWithoutImageException(null);
+//        }
 
         $this->payload['input']['detail_images'] = $product->media->map(function ($item) {
             return [
