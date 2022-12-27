@@ -102,34 +102,38 @@ trait ProductHandlerTrait
 //            throw new ProductWithoutImageException(null);
 //        }
 
-        $this->payload['input']['detail_images'] = $product->media->map(function ($item) {
-            return [
-                'detail_image_url' => config('channel_connector.nmo_image_root').stripslashes($item->src)
-            ];
-        });
-
-        if (!$product->override || !$product->override->id_from_remote) {
-            $this->payload['input']['stocks'] = $product->variants->map(function ($item) {
-                $options = json_decode(
-                    app(ChannelConnectorHelper::class)->buildValidJson($item->options),
-                    true
-                );
-
-                $optionStringForChannel = '';
-
-                foreach ($options as $option) {
-                    if (is_array($option)) {
-                        $optionStringForChannel .= $option['name']  . '=' . $option['value'] .', ';
-                    }
-                }
-
+        $this->payload['input']['detail_images'] = $product->media
+            ->slice(0, config('channel_connector_for_remote.maximum_variants'))
+            ->map(function ($item) {
                 return [
-                    'option_group_name' => $item->sku,
-                    'option_name' => $optionStringForChannel,
-                    'stock_count' => $item->inventorySet->available_stock_qty,
-                    'item_no' => $item->id
+                    'detail_image_url' => config('channel_connector.nmo_image_root').stripslashes($item->src)
                 ];
             });
+
+        if (!$product->override || !$product->override->id_from_remote) {
+            $this->payload['input']['stocks'] = $product->variants
+                ->slice(0, config('channel_connector_for_remote.maximum_variants'))
+                ->map(function ($item) {
+                    $options = json_decode(
+                        app(ChannelConnectorHelper::class)->buildValidJson($item->options),
+                        true
+                    );
+
+                    $optionStringForChannel = '';
+
+                    foreach ($options as $option) {
+                        if (is_array($option)) {
+                            $optionStringForChannel .= $option['name']  . '=' . $option['value'] .', ';
+                        }
+                    }
+
+                    return [
+                        'option_group_name' => $item->sku,
+                        'option_name' => $optionStringForChannel,
+                        'stock_count' => $item->inventorySet->available_stock_qty,
+                        'item_no' => $item->id
+                    ];
+                });
         }
         return $this;
     }

@@ -50,6 +50,7 @@ class ProductHandler extends ApiBase
         }
 
         try {
+            $product->refresh();
             $apiEndpoint = self::getFullChannelApiEndpoint('post.products');
             $response = $this->buildCreatePayload($product)->requestMutation($apiEndpoint);
 
@@ -148,6 +149,11 @@ class ProductHandler extends ApiBase
     public function updated(Product $product): bool
     {
         try {
+            $product->refresh();
+            if (!$product->override?->id_from_remote) {
+                $this->created($product);
+                return true;
+            }
             $apiEndpoint = self::getFullChannelApiEndpoint(
                 'put.products',
                 [ 'product_id' => $product->override->id_from_remote ]

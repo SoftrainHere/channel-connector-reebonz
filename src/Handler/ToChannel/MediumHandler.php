@@ -2,12 +2,14 @@
 
 namespace Mxncommerce\ChannelConnector\Handler\ToChannel;
 
-use App\Models\Features\DescriptionSet;
+use App\Models\Features\Medium;
 use App\Models\Features\Product;
+use Illuminate\Support\Carbon;
 use Mxncommerce\ChannelConnector\Handler\ApiBase;
+use Mxncommerce\ChannelConnector\Jobs\MediumUpdate;
 use Throwable;
 
-class DescriptionSetHandler extends ApiBase
+class MediumHandler extends ApiBase
 {
     /**
      * @param Product $product
@@ -15,10 +17,10 @@ class DescriptionSetHandler extends ApiBase
      * @throws Throwable
      * @throws \App\Exceptions\Api\SaveToCentralException
      */
-    public function created(DescriptionSet $descriptionSet): bool
+    public function created(Medium $medium): bool
     {
-        if($descriptionSet->product->descriptionSets->count() > 1) {
-            return app(ProductHandler::class)->updated($descriptionSet->product);
+        if($medium->product->media->count() > 0) {
+            return app(ProductHandler::class)->updated($medium->product);
         }
         return true;
     }
@@ -29,8 +31,10 @@ class DescriptionSetHandler extends ApiBase
      * @throws Throwable
      * @throws \App\Exceptions\Api\SaveToCentralException
      */
-    public function updated(DescriptionSet $descriptionSet): bool
+    public function updated(Medium $medium): void
     {
-        return app(ProductHandler::class)->updated($descriptionSet->product);
+        $dateNow = Carbon::now();
+        MediumUpdate::dispatch($medium)
+            ->delay($dateNow->addSeconds(60));
     }
 }
