@@ -126,11 +126,12 @@ trait ProductHandlerTrait
                             $optionStringForChannel .= $option['name']  . '=' . $option['value'] .', ';
                         }
                     }
-
+                    $available=$item['status']===VariantStatusType::Active->value&&
+                                $item['sales_status']===VariantSalesStatusType::Enabled->value;
                     return [
                         'option_group_name' => $item->sku,
                         'option_name' => $optionStringForChannel,
-                        'stock_count' => $item->inventorySet->available_stock_qty,
+                        'stock_count' => $available ? $item->inventorySet->available_stock_qty : 0,
                         'item_no' => $item->id
                     ];
                 });
