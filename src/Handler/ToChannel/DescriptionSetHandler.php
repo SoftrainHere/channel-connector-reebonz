@@ -3,34 +3,31 @@
 namespace Mxncommerce\ChannelConnector\Handler\ToChannel;
 
 use App\Models\Features\DescriptionSet;
-use App\Models\Features\Product;
+use Illuminate\Support\Carbon;
 use Mxncommerce\ChannelConnector\Handler\ApiBase;
-use Throwable;
+use Mxncommerce\ChannelConnector\Jobs\DescriptionSetUpsert;
 
 class DescriptionSetHandler extends ApiBase
 {
     /**
-     * @param Product $product
+     * @param DescriptionSet $descriptionSet
      * @return bool
-     * @throws Throwable
-     * @throws \App\Exceptions\Api\SaveToCentralException
      */
     public function created(DescriptionSet $descriptionSet): bool
     {
         if($descriptionSet->product->descriptionSets->count() > 1) {
-            return app(ProductHandler::class)->updated($descriptionSet->product);
+            DescriptionSetUpsert::dispatch($descriptionSet)->delay(Carbon::now()->addSeconds(60));
         }
         return true;
     }
 
     /**
-     * @param Product $product
+     * @param DescriptionSet $descriptionSet
      * @return bool
-     * @throws Throwable
-     * @throws \App\Exceptions\Api\SaveToCentralException
      */
     public function updated(DescriptionSet $descriptionSet): bool
     {
-        return app(ProductHandler::class)->updated($descriptionSet->product);
+        DescriptionSetUpsert::dispatch($descriptionSet)->delay(Carbon::now()->addSeconds(60));
+        return true;
     }
 }

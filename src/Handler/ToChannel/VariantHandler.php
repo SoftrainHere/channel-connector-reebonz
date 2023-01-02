@@ -5,24 +5,23 @@ namespace Mxncommerce\ChannelConnector\Handler\ToChannel;
 use App\Models\Features\Variant;
 use Illuminate\Support\Carbon;
 use Mxncommerce\ChannelConnector\Handler\ApiBase;
-use Mxncommerce\ChannelConnector\Jobs\MediumUpdate;
 use Mxncommerce\ChannelConnector\Jobs\VariantCreate;
-use Throwable;
 
 class VariantHandler extends ApiBase
 {
     /**
-     * @throws \App\Exceptions\Api\SaveToCentralException
-     * @throws Throwable
+     * @param Variant $variant
+     * @return bool
      */
     public function updated(Variant $variant): bool
     {
-        return app(ProductHandler::class)->updated($variant->product);
+        VariantCreate::dispatch($variant)->delay(Carbon::now()->addSeconds(60));
+        return true;
     }
 
-    public function created(Variant $variant): void
+    public function created(Variant $variant): bool
     {
-        $dateNow = Carbon::now();
-        VariantCreate::dispatch($variant)->delay($dateNow->addSeconds(60));
+        VariantCreate::dispatch($variant)->delay(Carbon::now()->addSeconds(60));
+        return true;
     }
 }

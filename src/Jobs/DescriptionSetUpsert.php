@@ -3,7 +3,7 @@
 namespace Mxncommerce\ChannelConnector\Jobs;
 
 use App\Jobs\Features\SendModelChangeToRemote;
-use App\Models\Features\Variant;
+use App\Models\Features\DescriptionSet;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,7 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class VariantCreate implements ShouldQueue, ShouldBeUnique
+class DescriptionSetUpsert implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -29,7 +29,7 @@ class VariantCreate implements ShouldQueue, ShouldBeUnique
     public int $tries = 3;
     public int $backoff = 10;
 
-    private Variant $variant;
+    private DescriptionSet $descriptionSet;
 
     /**
      * The number of seconds after which the job's unique lock will be released.
@@ -45,7 +45,7 @@ class VariantCreate implements ShouldQueue, ShouldBeUnique
      */
     public function uniqueId(): string
     {
-        return 'ProductResend' . $this->variant->product->id;
+        return 'ProductResend' . $this->descriptionSet->product->id;
     }
 
     /**
@@ -53,14 +53,14 @@ class VariantCreate implements ShouldQueue, ShouldBeUnique
      *
      * @return void
      */
-    public function __construct(Variant $variant)
+    public function __construct(DescriptionSet $descriptionSet)
     {
         $this->onQueue(config('queue.connections.database.queue_to_remote'));
-        $this->variant = $variant;
+        $this->descriptionSet = $descriptionSet;
     }
 
     public function handle(): void
     {
-        SendModelChangeToRemote::dispatch('Product', 'updated', $this->variant->product);
+        SendModelChangeToRemote::dispatch('Product', 'updated', $this->descriptionSet->product);
     }
 }

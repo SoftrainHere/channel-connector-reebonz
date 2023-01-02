@@ -41,16 +41,23 @@ class ProductHandler extends ApiBase
     {
         ChannelConnectorFacade::echoDev(__CLASS__ . '->' .  __FUNCTION__);
 
+        $product->refresh();
+        $product->load(['variants']);
+
         if (
             !($product->vendorBrand instanceof VendorBrand) ||
             !count($product->variants) ||
             !count($product->descriptionSets)
         ) {
+            $error = 'Product(' . $product->id . ') has been ignored';
+            app(SendExceptionToCentralLog::class)(
+                [$error],
+                Response::HTTP_FORBIDDEN
+            );
             return false;
         }
 
         try {
-            $product->refresh();
             $apiEndpoint = self::getFullChannelApiEndpoint('post.products');
             $response = $this->buildCreatePayload($product)->requestMutation($apiEndpoint);
 
@@ -151,7 +158,16 @@ class ProductHandler extends ApiBase
         try {
             $product->refresh();
             if (!$product->override?->id_from_remote) {
-                $this->created($product);
+                $error_namespace = 'mxncommerce.channel-connector::channel_connector.errors.product_update_error';
+                $error = trans($error_namespace, [
+                    'product_id' => $product->id,
+                    'message' => 'Product is not connected yet'
+                ]);
+
+                app(SendExceptionToCentralLog::class)(
+                    [$error],
+                    Response::HTTP_FORBIDDEN
+                );
                 return true;
             }
             $apiEndpoint = self::getFullChannelApiEndpoint(

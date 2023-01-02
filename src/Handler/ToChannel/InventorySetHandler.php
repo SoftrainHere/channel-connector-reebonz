@@ -26,6 +26,7 @@ class InventorySetHandler extends ApiBase
         ChannelConnectorFacade::echoDev(__CLASS__ . '->' .  __FUNCTION__);
 
         try {
+            $inventorySet->refresh();
             if (empty($inventorySet->product->override->id_from_remote)) {
                 throw new NotDistributedProductException();
             }

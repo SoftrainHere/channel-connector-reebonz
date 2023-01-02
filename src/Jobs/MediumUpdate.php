@@ -11,11 +11,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-/**
- * We don't know the order fulfillment information
- * at the time the order is created from channel.
- * So to get that information, we need extra api request
- */
 class MediumUpdate implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -41,7 +36,7 @@ class MediumUpdate implements ShouldQueue, ShouldBeUnique
      *
      * @var int
      */
-    public $uniqueFor = 90;
+    public int $uniqueFor = 50;
 
     public function uniqueId(): string
     {

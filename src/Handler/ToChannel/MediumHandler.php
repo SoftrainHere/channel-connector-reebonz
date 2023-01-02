@@ -3,38 +3,31 @@
 namespace Mxncommerce\ChannelConnector\Handler\ToChannel;
 
 use App\Models\Features\Medium;
-use App\Models\Features\Product;
 use Illuminate\Support\Carbon;
 use Mxncommerce\ChannelConnector\Handler\ApiBase;
 use Mxncommerce\ChannelConnector\Jobs\MediumUpdate;
-use Throwable;
 
 class MediumHandler extends ApiBase
 {
     /**
-     * @param Product $product
+     * @param Medium $medium
      * @return bool
-     * @throws Throwable
-     * @throws \App\Exceptions\Api\SaveToCentralException
      */
     public function created(Medium $medium): bool
     {
         if($medium->product->media->count() > 0) {
-            return app(ProductHandler::class)->updated($medium->product);
+            MediumUpdate::dispatch($medium)->delay(Carbon::now()->addSeconds(60));
         }
         return true;
     }
 
     /**
-     * @param Product $product
+     * @param Medium $medium
      * @return bool
-     * @throws Throwable
-     * @throws \App\Exceptions\Api\SaveToCentralException
      */
-    public function updated(Medium $medium): void
+    public function updated(Medium $medium): bool
     {
-        $dateNow = Carbon::now();
-        MediumUpdate::dispatch($medium)
-            ->delay($dateNow->addSeconds(60));
+        MediumUpdate::dispatch($medium)->delay(Carbon::now()->addSeconds(60));
+        return true;
     }
 }
