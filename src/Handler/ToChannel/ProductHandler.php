@@ -107,6 +107,12 @@ class ProductHandler extends ApiBase
              | ------------------------------------------------------------
              */
             ChannelConnectorFacade::upsertSupplyPriceSentHistory($product);
+            $msg = 'Product(' . $product->id . ') with '.count($product->variants).
+                ' variants and '.count($product->media).' media has been connected...';
+            app(SendExceptionToCentralLog::class)(
+                [$msg],
+                Response::HTTP_FORBIDDEN
+            );
 
         } catch (ProductWithoutCategoryException $e) {
             $resyncWaitingProduct = ResyncWaitingProduct::whereProductId($product->id)->first();
