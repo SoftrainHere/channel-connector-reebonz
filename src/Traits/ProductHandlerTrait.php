@@ -6,14 +6,12 @@ use App\Enums\VariantSalesStatusType;
 use App\Enums\VariantStatusType;
 use App\Exceptions\Api\ProductWithoutCategoryException;
 use App\Exceptions\Api\ProductWithoutChannelBrandException;
-use Mxncommerce\ChannelConnector\Exceptions\Api\ProductWithoutImageException;
 use App\Helpers\ChannelConnectorFacade;
 use App\Models\ChannelCategory;
 use App\Models\Features\Category;
 use App\Models\Features\ConfigurationValue;
 use App\Models\Features\Country;
 use App\Models\Features\Product;
-use App\Models\Features\Medium;
 use Mxncommerce\ChannelConnector\Helpers\ChannelConnectorHelper;
 use Throwable;
 
@@ -110,32 +108,30 @@ trait ProductHandlerTrait
                 ];
             });
 
-        if (!$product->override || !$product->override->id_from_remote) {
-            $this->payload['input']['stocks'] = $product->variants
-                ->slice(0, config('channel_connector_for_remote.maximum_variants'))
-                ->map(function ($item) {
-                    $options = json_decode(
-                        app(ChannelConnectorHelper::class)->buildValidJson($item->options),
-                        true
-                    );
+        $this->payload['input']['stocks'] = $product->variants
+            ->slice(0, config('channel_connector_for_remote.maximum_variants'))
+            ->map(function ($item) {
+                $options = json_decode(
+                    app(ChannelConnectorHelper::class)->buildValidJson($item->options),
+                    true
+                );
 
-                    $optionStringForChannel = '';
+                $optionStringForChannel = '';
 
-                    foreach ($options as $option) {
-                        if (is_array($option)) {
-                            $optionStringForChannel .= $option['name']  . '=' . $option['value'] .', ';
-                        }
+                foreach ($options as $option) {
+                    if (is_array($option)) {
+                        $optionStringForChannel .= $option['name']  . '=' . $option['value'] .', ';
                     }
-                    $available=$item['status']===VariantStatusType::Active->value&&
-                                $item['sales_status']===VariantSalesStatusType::Enabled->value;
-                    return [
-                        'option_group_name' => $item->sku,
-                        'option_name' => $optionStringForChannel,
-                        'stock_count' => $available ? $item->inventorySet->available_stock_qty : 0,
-                        'item_no' => $item->id
-                    ];
-                });
-        }
+                }
+                $available=$item['status']===VariantStatusType::Active->value&&
+                    $item['sales_status']===VariantSalesStatusType::Enabled->value;
+                return [
+                    'option_name' => $optionStringForChannel,
+                    'stock_count' => $available ? $item->inventorySet->available_stock_qty : 0,
+                    'item_no' => $item->id
+                ];
+            });
+
         return $this;
     }
 

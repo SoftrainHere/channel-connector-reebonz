@@ -189,12 +189,21 @@ class ProductHandler extends ApiBase
                 );
             }
 
+            $this->updateOverrideDataFromRemote($product, $response);
+
             /*
              | ------------------------------------------------------------
              | Upsert last History of supplied price of product to channel
              | ------------------------------------------------------------
              */
             ChannelConnectorFacade::upsertSupplyPriceSentHistory($product);
+            $msg = 'Product(' . $product->id . ') with '.count($product->variants).
+                ' variants and '.count($product->media).' media has been connected...';
+            app(SendExceptionToCentralLog::class)(
+                [$msg],
+                Response::HTTP_CREATED
+            );
+
         } catch (Exception $e) {
             app(SendExceptionToCentralLog::class)(
                 ['Reebonz product sync error', $e->getMessage()],
