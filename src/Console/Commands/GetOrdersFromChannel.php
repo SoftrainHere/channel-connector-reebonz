@@ -108,7 +108,27 @@ class GetOrdersFromChannel extends Command
                 ->where('overridable_type', Variant::class)->first();
 
             if ($variantModel instanceof Override) {
-                return true;
+                if (isset(json_decode($variantModel->fields_overrided)->status)||
+                    isset(json_decode($variantModel->fields_overrided)->sales_status)) {
+                    $status =!isset(json_decode($variantModel->fields_overrided)->status)
+                        ? null : json_decode($variantModel->fields_overrided)->status;
+                    $sales_status = !isset(json_decode($variantModel->fields_overrided)->sales_status)
+                        ? null : json_decode($variantModel->fields_overrided)->sales_status;
+
+                    if ($status==='ACTIVE' && $sales_status==='ENABLED') {
+                        return true;
+                    } elseif ($status==='ACTIVE' && $sales_status===null) {
+                        return true;
+                    } elseif ($sales_status==='ENABLED' && $status===null) {
+                        return true;
+                    }
+                } else {
+                    if ((Variant::whereId($variantModel->overridable_id)->first()->status==='ACTIVE')&&
+                        (Variant::whereId($variantModel->overridable_id)->first()->sales_status==='ENABLED')) {
+                        return true;
+                    }
+                }
+                return false;
             }
         } else {
             $message = trans('mxncommerce.channel-connector::channel_connector.errors.product_not_connected', [
