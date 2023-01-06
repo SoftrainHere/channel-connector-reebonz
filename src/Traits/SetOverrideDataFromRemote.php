@@ -44,8 +44,14 @@ trait SetOverrideDataFromRemote
                     ->where('overridable_type', Variant::class)->first();
                 if ($override?->overridable instanceof Variant) {
                     $override->id_from_remote = $stock['id'];
-                    $override->save();
+                } else {
+                    $override = new Override();
+                    $override->overridable_id=$stock['item_no'];
+                    $override->overridable_type=Variant::class;
+                    $override->id_from_remote = $stock['id'];
+                    $override->meta_id_from_remote = json_encode(["id"=>$stock['id']]);
                 }
+                $override->save();
             }
         }
         return true;
