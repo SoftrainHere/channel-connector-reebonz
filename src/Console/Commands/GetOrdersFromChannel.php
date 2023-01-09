@@ -2,6 +2,8 @@
 
 namespace Mxncommerce\ChannelConnector\Console\Commands;
 
+use App\Enums\VariantSalesStatusType;
+use App\Enums\VariantStatusType;
 use App\Libraries\Dynamo\SendExceptionToCentralLog;
 use App\Models\Features\ConfigurationValue;
 use App\Models\Features\Product;
@@ -93,7 +95,7 @@ class GetOrdersFromChannel extends Command
         echo 'Got ' . $totalCount . ' orders ' . $totalNotDealable . ' not dealable from scheduler' . PHP_EOL;
     }
 
-    private static function isDealable(array $order): bool
+    public static function isDealable(array $order): bool
     {
         $channelOrderStatus = app(ChannelConnectorHelper::class)
             ->getChannelOrderStatus($order['order_status']);
@@ -108,25 +110,16 @@ class GetOrdersFromChannel extends Command
                 ->where('overridable_type', Variant::class)->first();
 
             if ($variantModel instanceof Override) {
-                if (isset(json_decode($variantModel->fields_overrided)->status)||
-                    isset(json_decode($variantModel->fields_overrided)->sales_status)) {
-                    $status =!isset(json_decode($variantModel->fields_overrided)->status)
-                        ? null : json_decode($variantModel->fields_overrided)->status;
-                    $sales_status = !isset(json_decode($variantModel->fields_overrided)->sales_status)
-                        ? null : json_decode($variantModel->fields_overrided)->sales_status;
+                $status = json_decode($variantModel->fields_overrided)->status
+                    ?? $variantModel->overridable->status;
+                $sales_status = json_decode($variantModel->fields_overrided)->sales_status
+                    ?? $variantModel->overridable->sales_status;
 
-                    if ($status==='ACTIVE' && $sales_status==='ENABLED') {
-                        return true;
-                    } elseif ($status==='ACTIVE' && $sales_status===null) {
-                        return true;
-                    } elseif ($sales_status==='ENABLED' && $status===null) {
-                        return true;
-                    }
-                } else {
-                    if ((Variant::whereId($variantModel->overridable_id)->first()->status==='ACTIVE')&&
-                        (Variant::whereId($variantModel->overridable_id)->first()->sales_status==='ENABLED')) {
-                        return true;
-                    }
+                if (
+                    $status === VariantStatusType::Active->value &&
+                    $sales_status === VariantSalesStatusType::Enabled->value
+                ) {
+                    return true;
                 }
                 return false;
             }
