@@ -2,6 +2,10 @@
 
 namespace Mxncommerce\ChannelConnector\Console\Commands;
 
+use App\Enums\ProductSalesStatusType;
+use App\Enums\ProductStatusType;
+use App\Enums\VariantSalesStatusType;
+use App\Enums\VariantStatusType;
 use App\Libraries\Dynamo\SendExceptionToCentralLog;
 use App\Models\Features\ConfigurationValue;
 use App\Models\Features\Product;
@@ -93,7 +97,7 @@ class GetOrdersFromChannel extends Command
         echo 'Got ' . $totalCount . ' orders ' . $totalNotDealable . ' not dealable from scheduler' . PHP_EOL;
     }
 
-    private static function isDealable(array $order): bool
+    public static function isDealable(array $order): bool
     {
         $channelOrderStatus = app(ChannelConnectorHelper::class)
             ->getChannelOrderStatus($order['order_status']);
@@ -103,34 +107,7 @@ class GetOrdersFromChannel extends Command
         $model = Override::whereIdFromRemote($order['product_id'])
             ->where('overridable_type', Product::class)->first();
 
-        if ($model instanceof Override) {
-            $variantModel = Override::whereIdFromRemote($order['stock_id'])
-                ->where('overridable_type', Variant::class)->first();
-
-            if ($variantModel instanceof Override) {
-                if (isset(json_decode($variantModel->fields_overrided)->status)||
-                    isset(json_decode($variantModel->fields_overrided)->sales_status)) {
-                    $status =!isset(json_decode($variantModel->fields_overrided)->status)
-                        ? null : json_decode($variantModel->fields_overrided)->status;
-                    $sales_status = !isset(json_decode($variantModel->fields_overrided)->sales_status)
-                        ? null : json_decode($variantModel->fields_overrided)->sales_status;
-
-                    if ($status==='ACTIVE' && $sales_status==='ENABLED') {
-                        return true;
-                    } elseif ($status==='ACTIVE' && $sales_status===null) {
-                        return true;
-                    } elseif ($sales_status==='ENABLED' && $status===null) {
-                        return true;
-                    }
-                } else {
-                    if ((Variant::whereId($variantModel->overridable_id)->first()->status==='ACTIVE')&&
-                        (Variant::whereId($variantModel->overridable_id)->first()->sales_status==='ENABLED')) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        } else {
+        if (!$model instanceof Override) {
             $message = trans('mxncommerce.channel-connector::channel_connector.errors.product_not_connected', [
                 'product_id_from_channel' => $order['product_id'] ?? 'NA',
             ]);
@@ -138,8 +115,59 @@ class GetOrdersFromChannel extends Command
                 [$message],
                 Response::HTTP_NOT_FOUND,
             );
+            return false;
         }
 
-        return false;
+        if (
+            $model->overridable?->status !== ProductStatusType::Active->value ||
+            $model->overridable?->sales_status !== ProductSalesStatusType::Enabled->value
+        ) {
+            return false;
+        }
+
+        $productOverride = json_decode($model->fields_overrided ?? '{}');
+        $statusProduct = $productOverride?->status ?? null;
+        $salesStatusProduct = $productOverride?->sales_status ?? null;
+
+        if (
+            ($statusProduct && $statusProduct !== ProductStatusType::Active->value) ||
+            ($salesStatusProduct && $salesStatusProduct !== ProductSalesStatusType::Enabled->value)
+        ) {
+            return false;
+        }
+
+        $variantModel = Override::whereIdFromRemote($order['stock_id'])
+            ->where('overridable_type', Variant::class)->first();
+
+        if (!$variantModel instanceof Override) {
+            $message = trans('mxncommerce.channel-connector::channel_connector.errors.variant_not_connected', [
+                'variant_id_from_channel' => $order['stock_id'] ?? 'NA',
+            ]);
+            app(SendExceptionToCentralLog::class)(
+                [$message],
+                Response::HTTP_NOT_FOUND,
+            );
+            return false;
+        }
+
+        if (
+            $variantModel->overridable?->status !== VariantStatusType::Active->value ||
+            $variantModel->overridable?->sales_status !== VariantSalesStatusType::Enabled->value
+        ) {
+            return false;
+        }
+
+        $variantOverride = json_decode($variantModel->fields_overrided ?? '{}');
+        $statusVariant = $variantOverride?->status ?? null;
+        $salesStatusVariant = $variantOverride?->sales_status ?? null;
+
+        if (
+            ($statusVariant && $statusVariant !== VariantStatusType::Active->value) ||
+            ($salesStatusVariant && $salesStatusVariant !== VariantSalesStatusType::Enabled->value)
+        ) {
+            return false;
+        }
+
+        return true;
     }
 }
