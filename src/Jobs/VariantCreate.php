@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 
 class VariantCreate implements ShouldQueue, ShouldBeUnique
@@ -36,7 +37,7 @@ class VariantCreate implements ShouldQueue, ShouldBeUnique
      *
      * @var int
      */
-    public int $uniqueFor = 50;
+    public int $uniqueFor = 300;
 
     /**
      * The unique ID of the job.
@@ -46,6 +47,16 @@ class VariantCreate implements ShouldQueue, ShouldBeUnique
     public function uniqueId(): string
     {
         return 'ProductResend' . $this->variant->product->id;
+    }
+
+    /**
+     * Get the middleware the job should pass through.
+     *
+     * @return array
+     */
+    public function middleware(): array
+    {
+        return [(new WithoutOverlapping($this->variant->product->id))->dontRelease()];
     }
 
     /**

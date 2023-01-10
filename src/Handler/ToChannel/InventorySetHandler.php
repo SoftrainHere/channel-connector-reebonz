@@ -27,6 +27,11 @@ class InventorySetHandler extends ApiBase
 
         try {
             $inventorySet->refresh();
+
+            if (!$inventorySet->product->media()->available()->count()) {
+                return false;
+            }
+
             if (empty($inventorySet->product->override->id_from_remote)) {
                 throw new NotDistributedProductException();
             }
@@ -60,13 +65,19 @@ class InventorySetHandler extends ApiBase
         return true;
     }
 
-    /**
-     * @param InventorySet $inventorySet
-     * @return void
-     * @throws Throwable
-     */
+
     public function updated(InventorySet $inventorySet): bool
     {
+        if (!$inventorySet->product->media()->available()->count()) {
+            app(SendExceptionToCentralLog::class)(
+                [trans('errors.not_distributed_product', [
+                    'product_id' => $inventorySet->product->id,
+                    'method' => 'InventorySetHandler->' . __FUNCTION__
+                ])],
+                Response::HTTP_FORBIDDEN,
+            );
+            return false;
+        }
         return $this->created($inventorySet, 'put');
     }
 }

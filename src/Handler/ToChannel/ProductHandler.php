@@ -163,17 +163,9 @@ class ProductHandler extends ApiBase
     {
         try {
             $product->refresh();
-            if (!$product->override?->id_from_remote) {
-                $error_namespace = 'mxncommerce.channel-connector::channel_connector.errors.product_update_error';
-                $error = trans($error_namespace, [
-                    'product_id' => $product->id,
-                    'message' => 'Product is not connected yet'
-                ]);
 
-                app(SendExceptionToCentralLog::class)(
-                    [$error],
-                    Response::HTTP_FORBIDDEN
-                );
+            if (!$product->override?->id_from_remote) {
+                $this->created($product);
                 return true;
             }
             $apiEndpoint = self::getFullChannelApiEndpoint(
@@ -198,7 +190,7 @@ class ProductHandler extends ApiBase
              */
             ChannelConnectorFacade::upsertSupplyPriceSentHistory($product);
             $msg = 'Product(' . $product->id . ') with '.count($product->variants).
-                ' variants and '.count($product->media).' media has been connected...';
+                ' variants and '.count($product->media).' media has been updated...';
             app(SendExceptionToCentralLog::class)(
                 [$msg],
                 Response::HTTP_CREATED
