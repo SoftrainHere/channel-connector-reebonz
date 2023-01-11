@@ -1,0 +1,20 @@
+version: 0.2
+
+env:
+  parameter-store:
+    CHANNEL_ECR_ARN: "/ChannelConnector/Core/EcrArn"
+
+phases:
+  install:
+    runtime-versions:
+      php: 8.1
+
+  post_build:
+    commands:
+      - echo Writing image definitions file...
+      - printf "[{\"name\":\"channel-connector-php-fpm\",\"imageUri\":\"%s\"}]"
+        ${CHANNEL_ECR_ARN}${IMAGE_TAG_PHP_FPM} > imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
