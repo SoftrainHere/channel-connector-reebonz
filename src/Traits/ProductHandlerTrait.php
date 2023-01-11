@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Mxncommerce\ChannelConnector\Traits;
 
@@ -11,7 +13,9 @@ use App\Models\ChannelCategory;
 use App\Models\Features\Category;
 use App\Models\Features\ConfigurationValue;
 use App\Models\Features\Country;
+use App\Models\Features\Medium;
 use App\Models\Features\Product;
+use App\Models\Override;
 use Mxncommerce\ChannelConnector\Helpers\ChannelConnectorHelper;
 use Throwable;
 
@@ -35,7 +39,7 @@ trait ProductHandlerTrait
         $this->payload['input']['available'] = 1;
 
         if (ConfigurationValue::getValue('use_brand_mapper')) {
-            if(!count($product->vendorBrand->brand->channelBrand)) {
+            if (!count($product->vendorBrand->brand->channelBrand)) {
                 throw new ProductWithoutChannelBrandException(null);
             }
         }
@@ -103,9 +107,16 @@ trait ProductHandlerTrait
         $this->payload['input']['detail_images'] = $product->media
             ->slice(0, config('channel_connector_for_remote.maximum_variants'))
             ->map(function ($item) {
-                return [
-                    'detail_image_url' => config('channel_connector.nmo_image_root').stripslashes($item->src)
-                ];
+                if ($item->override instanceof Override) {
+                    $imageOverride = json_decode($item->override->fields_overrided);
+                    return [
+                        'detail_image_url' => $imageOverride?->src ?? config('channel_connector.nmo_image_root').stripslashes((string)$item->src)
+                    ];
+                } else {
+                    return [
+                        'detail_image_url' => config('channel_connector.nmo_image_root').stripslashes((string)$item->src)
+                    ];
+                }
             });
 
         $this->payload['input']['stocks'] = $product->variants
