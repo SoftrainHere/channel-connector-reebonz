@@ -107,8 +107,9 @@ class ProductHandler extends ApiBase
              | ------------------------------------------------------------
              */
             ChannelConnectorFacade::upsertSupplyPriceSentHistory($product);
-            $msg = 'Product(' . $product->id . ') with '.count($product->variants).
-                ' variants and '.count($product->media).' media has been connected...';
+            $msg = 'Product(' . $product->id . ') with '.count($response['stocks']).
+                ' variants and '.count($this->payload['input']['detail_images']).
+                ' media has been sent from '.count($product->variants).'/'.count($product->media).' cc variant/media';
             app(SendExceptionToCentralLog::class)(
                 [$msg],
                 Response::HTTP_CREATED
@@ -189,8 +190,10 @@ class ProductHandler extends ApiBase
              | ------------------------------------------------------------
              */
             ChannelConnectorFacade::upsertSupplyPriceSentHistory($product);
-            $msg = 'Product(' . $product->id . ') with '.count($product->variants).
-                ' variants and '.count($product->media).' media has been updated...';
+            $msg = 'Product(' . $product->id . ') with '.count($this->payload['input']['stocks']).
+                ' variants and '.count($this->payload['input']['detail_images']).
+                ' media has been updated from '.count($product->variants).'/'.count($product->media).'
+                cc variant/media';
             app(SendExceptionToCentralLog::class)(
                 [$msg],
                 Response::HTTP_CREATED
