@@ -36,6 +36,8 @@ class GetOrdersFromChannel extends Command
      */
     protected $description = 'Get orders from channel with their API';
 
+    protected $test = 'Get orders from channel with their API';
+
     /**
      * Create a new command instance.
      *
