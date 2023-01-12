@@ -48,6 +48,10 @@ class VariantCreate implements ShouldQueue, ShouldBeUnique
     {
         return 'ProductResend' . $this->variant->product->id;
     }
+    public function test(): string
+    {
+        return 'ProductResend' . $this->variant->product->id;
+    }
 
     /**
      * Get the middleware the job should pass through.
