@@ -2,11 +2,14 @@
 
 namespace Mxncommerce\ChannelConnector\Handler\ToChannel;
 
+use App\Enums\VariantSalesStatusType;
+use App\Enums\VariantStatusType;
 use App\Exceptions\Api\NotDistributedProductException;
 use App\Helpers\ChannelConnectorFacade;
 use App\Libraries\Dynamo\SendExceptionToCentralLog;
 use App\Models\Features\InventorySet;
 use Exception;
+use Mxncommerce\ChannelConnector\Exceptions\Api\VariantNotActiveException;
 use Mxncommerce\ChannelConnector\Handler\ApiBase;
 use Mxncommerce\ChannelConnector\Traits\InventorySetHandlerTrait;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,6 +39,21 @@ class InventorySetHandler extends ApiBase
                 throw new NotDistributedProductException();
             }
 
+            if (!($inventorySet->variant->status===VariantStatusType::Active->value&&
+                $inventorySet->variant->sales_status===VariantSalesStatusType::Enabled->value)) {
+                throw new VariantNotActiveException();
+            }
+            $variantOverride = json_decode($inventorySet->variant->override->fields_overrided ?? '{}');
+            if (count((array)$variantOverride)>0) {
+                $statusVariant = $variantOverride?->status ?? null;
+                $salesStatusVariant = $variantOverride?->sales_status ?? null;
+
+                if (($statusVariant && $statusVariant !== VariantStatusType::Active->value) ||
+                    ($salesStatusVariant && $salesStatusVariant !== VariantSalesStatusType::Enabled->value)) {
+                    throw new VariantNotActiveException();
+                }
+            }
+
             $apiEndpoint = self::getFullChannelApiEndpoint(
                 'put.stock_update',
                 [ 'product_id' => $inventorySet->product->override->id_from_remote ]
@@ -52,6 +70,13 @@ class InventorySetHandler extends ApiBase
             app(SendExceptionToCentralLog::class)(
                 [trans('errors.not_distributed_product', [
                     'product_id' => $inventorySet->product->id
+                ])],
+                Response::HTTP_FORBIDDEN,
+            );
+        } catch (VariantNotActiveException $e) {
+            app(SendExceptionToCentralLog::class)(
+                [trans('mxncommerce.channel-connector::channel_connector.errors.variant_not_active', [
+                    'variant_id' => $inventorySet->variant->id
                 ])],
                 Response::HTTP_FORBIDDEN,
             );

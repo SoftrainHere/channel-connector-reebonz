@@ -51,6 +51,7 @@ return [
             '(history supply_price(:supply_price_history) does not match with ' .
             'current supply_price(:supply_price_current))',
         'variant_not_connected' => 'Variant ID(:variant_id_from_channel) from remote does not exist in override',
+        'variant_not_active' => 'Failed to update stock, Variant ID(:variant_id) is not active',
         'wrong_credential_for_channel' => 'Failed to renew token from channel-api with given credential',
     ],
 ];
