@@ -74,4 +74,5 @@ return [
     'img_src' => env('IMG_SRC','/images/default_image_large.jpg'),
     'local_currency_code' => env('CHANNEL_CURRENCY_CODE','JPY'),
     'maximum_variants' => env('MAXIMUM_VARIANTS',30),
+    'maximum_images' => env('MAXIMUM_IMAGES',20),
 ];

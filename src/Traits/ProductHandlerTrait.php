@@ -105,7 +105,7 @@ trait ProductHandlerTrait
 //        }
 
         $this->payload['input']['detail_images'] = $product->media
-            ->slice(0, config('channel_connector_for_remote.maximum_variants'))
+            ->slice(0, config('channel_connector_for_remote.maximum_images'))
             ->map(function ($item) {
                 if ($item->override instanceof Override) {
                     $imageOverride = json_decode($item->override->fields_overrided);
@@ -118,6 +118,7 @@ trait ProductHandlerTrait
                     ];
                 }
             });
+        dd($this->payload['input']['detail_images']);
 
         $this->payload['input']['stocks'] = $product->variants
             ->slice(0, config('channel_connector_for_remote.maximum_variants'))
