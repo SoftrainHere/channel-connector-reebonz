@@ -106,6 +106,7 @@ trait ProductHandlerTrait
 
         $this->payload['input']['detail_images'] = $product->media
             ->slice(0, config('channel_connector_for_remote.maximum_images'))
+            ->sortBy('priority')
             ->map(function ($item) {
                 if ($item->override instanceof Override) {
                     $imageOverride = json_decode($item->override->fields_overrided);
