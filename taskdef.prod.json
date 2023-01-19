@@ -1,0 +1,11 @@
+{
+    "containerDefinitions": [
+        {
+            "image": "<IMAGE1_NAME>",
+            "name": "channel-connector-php-fpm"
+        }
+    ],
+    "memory": "1024",
+    "family": "ChannelConnectorCore",
+    "cpu": "512"
+}

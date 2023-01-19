@@ -1,0 +1,9 @@
+version: 0.0
+Resources:
+  - TargetService:
+      Type: AWS::ECS::Service
+      Properties:
+        TaskDefinition: "arn:aws:ecs:ap-northeast-2:153441531755:task-definition/_TASK_DEFINITION_REVISION_"
+        LoadBalancerInfo:
+          ContainerName: "channel-connector-proxy"
+          ContainerPort: 80
