@@ -15,6 +15,7 @@ phases:
       - printf "[{\"name\":\"channel-connector-php-fpm\",\"imageUri\":\"%s\"}]"
         ${CHANNEL_ECR_ARN}${IMAGE_TAG_PHP_FPM} > imagedefinitions.json
       - printf "{\"ImageURI\":\"%s\"}" ${CHANNEL_ECR_ARN}${IMAGE_TAG_PHP_FPM} > imageDetail.json
+      - sed -i s/_TASK_DEFINITION_REVISION_/$TASK_DEFINITION_REVISION/ appspec.yaml
 
 artifacts:
   files:
