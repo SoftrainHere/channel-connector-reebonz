@@ -14,7 +14,21 @@ phases:
       - echo Writing image definitions file...
       - printf "[{\"name\":\"channel-connector-php-fpm\",\"imageUri\":\"%s\"}]"
         ${CHANNEL_ECR_ARN}${IMAGE_TAG_PHP_FPM} > imagedefinitions.json
+      - printf "{\"ImageURI\":\"%s\"}" ${CHANNEL_ECR_ARN}${IMAGE_TAG_PHP_FPM} > imageDetail.json
 
 artifacts:
   files:
     - imagedefinitions.json
+    - imageDetail.json
+    - appspec.yaml
+    - taskdef.json
+    - taskdef.prod.json
+  secondary-artifacts:
+    DefinitionArtifact:
+      files:
+        - appspec.yaml
+        - taskdef.json
+        - taskdef.prod.json
+    ImageArtifact:
+      files:
+        - imageDetail.json

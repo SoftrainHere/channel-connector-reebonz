@@ -1,0 +1,258 @@
+{
+    "executionRoleArn": "arn:aws:iam::153441531755:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+        {
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/aws/ecs/deploy/channel-connector/php-fpm",
+                    "awslogs-region": "ap-northeast-2",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "portMappings": [
+                {
+                    "hostPort": 0,
+                    "protocol": "tcp",
+                    "containerPort": 9000
+                }
+            ],
+            "cpu": 0,
+            "environment": [
+                {
+                    "name": "APP_ENV",
+                    "value": "staging"
+                },
+                {
+                    "name": "AWS_ECS_CLUSTER_ARN",
+                    "value": "arn:aws:ecs:ap-northeast-2:153441531755:cluster/ChannelConnectorTestCluster"
+                },
+                {
+                    "name": "AWS_SCHEDULER_SERVICE",
+                    "value": "cc-test-scheduler-service"
+                },
+                {
+                    "name": "CHANNEL_COMMISSION",
+                    "value": "1"
+                },
+                {
+                    "name": "CHANNEL_GRANT_TYPE",
+                    "value": "password"
+                },
+                {
+                    "name": "CHANNEL_PACKAGE",
+                    "value": "mxncommerce/channel-connector:dev-staging"
+                },
+                {
+                    "name": "CHANNEL_PACKAGE_REPOSITORY",
+                    "value": "https://github.com/SoftrainHere/channel-connector-reebonz.git"
+                },
+                {
+                    "name": "MAXIMUM_VARIANTS",
+                    "value": "30"
+                },
+                {
+                    "name": "REDIS_HOST",
+                    "value": "channel-connector-redis"
+                }
+            ],
+            "workingDirectory": "/www_root/app",
+            "secrets": [
+                {
+                    "valueFrom": "/MCGroup/RabbitMQ/HostMintOrder",
+                    "name": "AMQP_HOST_MINT_ORDER"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:system/Common-zgtxtP:RABBITMQ_PASSWORD::",
+                    "name": "AMQP_PASSWORD_MINT_ORDER"
+                },
+                {
+                    "valueFrom": "/MCGroup/RabbitMQ/PortMintOrder",
+                    "name": "AMQP_PORT_MINT_ORDER"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:system/Common-zgtxtP:RABBITMQ_USER::",
+                    "name": "AMQP_USERNAME"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:system/Common-zgtxtP:RABBITMQ_USER::",
+                    "name": "AMQP_USERNAME_MINT_ORDER"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:system/Common-zgtxtP:AWS_NMO_ACCESS_KEY_ID::",
+                    "name": "AWS_ACCESS_KEY_ID"
+                },
+                {
+                    "valueFrom": "/CentralLog/PostUrl",
+                    "name": "AWS_CENTRAL_LOG_POST_URL"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:system/Common-zgtxtP:CENTRAL_LOG_TOKEN::",
+                    "name": "AWS_CENTRAL_LOG_TOKEN"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:system/Common-zgtxtP:AWS_DYNAMO_KEY::",
+                    "name": "AWS_DYNAMO_KEY"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:system/Common-zgtxtP:AWS_DYNAMO_SECRET::",
+                    "name": "AWS_DYNAMO_SECRET"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:system/Common-zgtxtP:AWS_NMO_SECRET_ACCESS_KEY::",
+                    "name": "AWS_SECRET_ACCESS_KEY"
+                },
+                {
+                    "valueFrom": "/ChannelConnector/Reebonz/ApiMarketPlaceRoot",
+                    "name": "CHANNEL_API_MARKETPLACE_ROOT"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector/Reebonz-NgZ8pX:CHANNEL_CURRENCY_CODE::",
+                    "name": "CHANNEL_CURRENCY_CODE"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector/Reebonz-NgZ8pX:CHANNEL_DOMAIN::",
+                    "name": "CHANNEL_DOMAIN"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector/Reebonz-NgZ8pX:CHANNEL_PASSWORD::",
+                    "name": "CHANNEL_PASSWORD"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector/Reebonz-NgZ8pX:CHANNEL_USERNAME::",
+                    "name": "CHANNEL_USERNAME"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector/Reebonz-NgZ8pX:DB_DATABASE::",
+                    "name": "DB_DATABASE"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector/Reebonz-NgZ8pX:DB_HOST::",
+                    "name": "DB_HOST"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector/Reebonz-NgZ8pX:DB_PASSWORD::",
+                    "name": "DB_PASSWORD"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector/Reebonz-NgZ8pX:DB_USERNAME::",
+                    "name": "DB_USERNAME"
+                },
+                {
+                    "valueFrom": "/ChannelConnector/Core/HorizonWhiteIp",
+                    "name": "HORIZON_WHITE_IP"
+                },
+                {
+                    "valueFrom": "/ChannelConnector/Core/LogDatabaseConnection",
+                    "name": "LOG_DB_CONNECTION"
+                },
+                {
+                    "valueFrom": "/MintOrder/GraphQL/EndPoint",
+                    "name": "NMO_GRAPHQL_API_ENDPOINT"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector-8f3Fjj:NMO_GRAPHQL_API_TOKEN::",
+                    "name": "NMO_GRAPHQL_API_TOKEN"
+                },
+                {
+                    "valueFrom": "/MintOrder/ImageRoot",
+                    "name": "NMO_IMAGE_ROOT"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector-8f3Fjj:PAPAGO_CLIENT_ID::",
+                    "name": "PAPAGO_CLIENT_ID"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector-8f3Fjj:PAPAGO_CLIENT_SECRET::",
+                    "name": "PAPAGO_CLIENT_SECRET"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector/Reebonz-NgZ8pX:READ_DB_HOST::",
+                    "name": "READ_DB_HOST"
+                },
+                {
+                    "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:153441531755:secret:channelConnector-8f3Fjj:TEST_REPO_TOKEN::",
+                    "name": "CHANNEL_PACKAGE_TOKEN"
+                }
+            ],
+            "image": "<IMAGE1_NAME>",
+            "dependsOn": [
+                {
+                    "containerName": "channel-connector-redis",
+                    "condition": "START"
+                }
+            ],
+            "essential": true,
+            "links": [
+                "channel-connector-redis"
+            ],
+            "name": "channel-connector-php-fpm"
+        },
+        {
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/aws/ecs/deploy/channel-connector/proxy",
+                    "awslogs-region": "ap-northeast-2",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "entryPoint": [],
+            "portMappings": [
+                {
+                    "hostPort": 0,
+                    "protocol": "tcp",
+                    "containerPort": 80
+                },
+                {
+                    "hostPort": 0,
+                    "protocol": "tcp",
+                    "containerPort": 443
+                },
+                {
+                    "hostPort": 0,
+                    "protocol": "tcp",
+                    "containerPort": 8080
+                }
+            ],
+            "cpu": 0,
+            "workingDirectory": "/www_root/app",
+            "image": "153441531755.dkr.ecr.ap-northeast-2.amazonaws.com/container-proxy:cc-nginx-1.23.3-alpine",
+            "dependsOn": [
+                {
+                    "containerName": "channel-connector-php-fpm",
+                    "condition": "START"
+                }
+            ],
+            "essential": true,
+            "links": [
+                "channel-connector-php-fpm"
+            ],
+            "name": "channel-connector-proxy"
+        },
+        {
+            "portMappings": [
+                {
+                    "hostPort": 0,
+                    "protocol": "tcp",
+                    "containerPort": 6379
+                }
+            ],
+            "cpu": 0,
+            "image": "153441531755.dkr.ecr.ap-northeast-2.amazonaws.com/container-redis:7.0.7-alpine",
+            "name": "channel-connector-redis"
+        }
+    ],
+    "memory": "1024",
+    "taskRoleArn": "arn:aws:iam::153441531755:role/ecsTaskExecutionRole",
+    "compatibilities": [
+        "EXTERNAL",
+        "EC2"
+    ],
+    "family": "ChannelConnectorCore",
+    "requiresCompatibilities": [
+        "EC2"
+    ],
+    "networkMode": "bridge",
+    "cpu": "512"
+}
