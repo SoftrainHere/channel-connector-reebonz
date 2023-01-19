@@ -7,3 +7,4 @@ Resources:
         LoadBalancerInfo:
           ContainerName: "channel-connector-proxy"
           ContainerPort: 8080
+
